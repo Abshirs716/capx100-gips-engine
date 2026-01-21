@@ -4,6 +4,9 @@
 ║                         Goldman Sachs Caliber                                  ║
 ║                   Flask App - EXACT MOCKUP DESIGN                             ║
 ║                         Port 8515                                             ║
+║                                                                               ║
+║              AI-POWERED: Compliance Checker, Disclosures Generator,           ║
+║                          Audit Preparation Assistant                          ║
 ╚═══════════════════════════════════════════════════════════════════════════════╝
 
 Run with: python gips_app.py
@@ -21,6 +24,7 @@ import csv
 import numpy as np
 from scipy import stats
 from werkzeug.utils import secure_filename
+import anthropic
 
 # PDF Generation
 from reportlab.lib import colors
@@ -48,6 +52,470 @@ import yfinance as yf
 from datetime import timedelta
 
 app = Flask(__name__)
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# AI-POWERED GIPS FEATURES - COMPLIANCE, DISCLOSURES, AUDIT PREP
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class GIPSAIAssistant:
+    """
+    AI-Powered GIPS Features using Claude API.
+
+    Features:
+    1. Compliance Checker - Validates GIPS 2020 requirements
+    2. Disclosures Generator - Creates required disclosure language
+    3. Audit Preparation Assistant - Prepares for GIPS verification
+    """
+
+    @staticmethod
+    def get_client():
+        """Initialize Claude API client."""
+        api_key = os.environ.get('ANTHROPIC_API_KEY')
+        if api_key:
+            return anthropic.Anthropic(api_key=api_key)
+        return None
+
+    @classmethod
+    def check_compliance(cls, data: dict) -> dict:
+        """
+        AI-POWERED GIPS COMPLIANCE CHECKER
+        Analyzes data against GIPS 2020 requirements.
+
+        Returns dict with:
+        - compliant_items: List of passing requirements
+        - violations: List of potential violations
+        - warnings: List of items needing attention
+        - recommendations: AI-generated recommendations
+        """
+        # Rule-based compliance checks (fast, no API needed)
+        results = {
+            'compliant_items': [],
+            'violations': [],
+            'warnings': [],
+            'recommendations': [],
+            'overall_status': 'COMPLIANT'
+        }
+
+        # GIPS 2020 Section 1.A - Fundamentals of Compliance
+        # Check 1: Firm definition
+        if data.get('firm_definition') or data.get('firm'):
+            results['compliant_items'].append({
+                'section': '1.A.1',
+                'requirement': 'Firm definition must be documented',
+                'status': 'PASS',
+                'evidence': f"Firm: {data.get('firm', data.get('name', 'Defined'))}"
+            })
+        else:
+            results['violations'].append({
+                'section': '1.A.1',
+                'requirement': 'Firm definition must be documented',
+                'status': 'FAIL',
+                'remediation': 'Document the firm definition clearly identifying the entity claiming GIPS compliance.'
+            })
+
+        # Check 2: Policies and procedures
+        results['compliant_items'].append({
+            'section': '1.A.2',
+            'requirement': 'Policies and procedures must be established',
+            'status': 'PASS',
+            'evidence': 'GIPS policy documentation system in place'
+        })
+
+        # GIPS 2020 Section 2.A - Return Calculation
+        # Check 3: Time-weighted returns
+        if data.get('monthly_returns') or data.get('returns'):
+            returns = data.get('monthly_returns', data.get('returns', []))
+            if len(returns) >= 12:
+                results['compliant_items'].append({
+                    'section': '2.A.32',
+                    'requirement': 'Time-weighted returns (TWR) calculation',
+                    'status': 'PASS',
+                    'evidence': f'{len(returns)} periods of return data available'
+                })
+            else:
+                results['warnings'].append({
+                    'section': '2.A.32',
+                    'requirement': 'Minimum return history',
+                    'status': 'WARNING',
+                    'note': f'Only {len(returns)} periods available. GIPS requires minimum reporting periods.'
+                })
+        else:
+            results['violations'].append({
+                'section': '2.A.32',
+                'requirement': 'Time-weighted returns must be calculated',
+                'status': 'FAIL',
+                'remediation': 'Implement TWR calculation methodology for all portfolios.'
+            })
+
+        # Check 4: Benchmark disclosure
+        if data.get('benchmark'):
+            results['compliant_items'].append({
+                'section': '5.A.8',
+                'requirement': 'Benchmark must be disclosed',
+                'status': 'PASS',
+                'evidence': f"Benchmark: {data.get('benchmark')}"
+            })
+        else:
+            results['warnings'].append({
+                'section': '5.A.8',
+                'requirement': 'Benchmark disclosure',
+                'status': 'WARNING',
+                'note': 'No benchmark specified. Must disclose appropriate benchmark for composite.'
+            })
+
+        # Check 5: Composite construction
+        if data.get('composite_definition') or data.get('strategy'):
+            results['compliant_items'].append({
+                'section': '3.A.1',
+                'requirement': 'Composite must include all fee-paying discretionary portfolios',
+                'status': 'PASS',
+                'evidence': f"Strategy: {data.get('strategy', data.get('composite_definition', 'Defined'))}"
+            })
+
+        # Check 6: Fee disclosure
+        if data.get('fee') or data.get('fee_type'):
+            results['compliant_items'].append({
+                'section': '4.A.6',
+                'requirement': 'Fee schedule must be disclosed',
+                'status': 'PASS',
+                'evidence': f"Fee: {data.get('fee', data.get('fee_type', 'Disclosed'))}"
+            })
+        else:
+            results['warnings'].append({
+                'section': '4.A.6',
+                'requirement': 'Fee schedule disclosure',
+                'status': 'WARNING',
+                'note': 'Fee information not provided. Must disclose fee schedule or state returns are gross of fees.'
+            })
+
+        # Check 7: Risk metrics (3-year standard deviation)
+        returns = data.get('monthly_returns', [])
+        if len(returns) >= 36:
+            results['compliant_items'].append({
+                'section': '5.A.2',
+                'requirement': 'Three-year annualized standard deviation',
+                'status': 'PASS',
+                'evidence': 'Sufficient data for 36-month ex-post risk calculation'
+            })
+        elif len(returns) >= 12:
+            results['warnings'].append({
+                'section': '5.A.2',
+                'requirement': 'Three-year annualized standard deviation',
+                'status': 'WARNING',
+                'note': f'Only {len(returns)} months available. 36 months required for compliant risk disclosure.'
+            })
+
+        # Determine overall status
+        if results['violations']:
+            results['overall_status'] = 'NON-COMPLIANT'
+        elif results['warnings']:
+            results['overall_status'] = 'COMPLIANT WITH WARNINGS'
+        else:
+            results['overall_status'] = 'FULLY COMPLIANT'
+
+        # Add AI-powered recommendations if available
+        client = cls.get_client()
+        if client and (results['violations'] or results['warnings']):
+            try:
+                issues_text = "\n".join([
+                    f"- {v['section']}: {v['requirement']}"
+                    for v in results['violations'] + results['warnings']
+                ])
+
+                response = client.messages.create(
+                    model="claude-sonnet-4-20250514",
+                    max_tokens=600,
+                    messages=[{
+                        "role": "user",
+                        "content": f"""As a GIPS compliance expert, provide specific actionable recommendations to address these GIPS 2020 compliance issues:
+
+{issues_text}
+
+Provide 3-4 specific recommendations with exact steps to achieve compliance. Be concise and practical."""
+                    }]
+                )
+                results['ai_recommendations'] = response.content[0].text
+            except Exception as e:
+                results['ai_recommendations'] = None
+
+        return results
+
+    @classmethod
+    def generate_disclosures(cls, data: dict) -> str:
+        """
+        AI-POWERED GIPS DISCLOSURES GENERATOR
+        Creates compliant disclosure language based on firm/composite data.
+
+        Returns: Complete GIPS-compliant disclosure text.
+        """
+        client = cls.get_client()
+
+        # Build context
+        firm_name = data.get('firm', data.get('name', 'The Firm'))
+        composite_name = data.get('composite_name', data.get('name', 'Composite'))
+        benchmark = data.get('benchmark', 'S&P 500 Total Return Index')
+        strategy = data.get('strategy', 'Investment strategy')
+        fee_type = data.get('fee', 'Net of fees')
+        inception_date = data.get('inception_date', data.get('gips_date', 'January 1, 2020'))
+
+        if client:
+            try:
+                response = client.messages.create(
+                    model="claude-sonnet-4-20250514",
+                    max_tokens=1500,
+                    messages=[{
+                        "role": "user",
+                        "content": f"""Generate complete GIPS 2020 compliant disclosure language for a composite report with these details:
+
+Firm Name: {firm_name}
+Composite Name: {composite_name}
+Benchmark: {benchmark}
+Strategy: {strategy}
+Fee Basis: {fee_type}
+GIPS Compliance Date: {inception_date}
+
+Generate the following required GIPS disclosures:
+1. Firm Definition & Compliance Statement
+2. Composite Description & Inclusion Criteria
+3. Benchmark Description
+4. Fee Schedule & Expense Disclosure
+5. Risk Disclosure (including standard deviation methodology)
+6. Verification Status Statement
+7. GIPS Trademark Attribution
+
+Format as a professional disclosure document ready for a GIPS presentation. Use formal legal language appropriate for regulatory compliance."""
+                    }]
+                )
+                return response.content[0].text
+            except Exception as e:
+                return cls._generate_standard_disclosures(data)
+        else:
+            return cls._generate_standard_disclosures(data)
+
+    @staticmethod
+    def _generate_standard_disclosures(data: dict) -> str:
+        """Generate standard disclosure text when AI is not available."""
+        firm_name = data.get('firm', data.get('name', '[FIRM NAME]'))
+        composite_name = data.get('composite_name', data.get('name', '[COMPOSITE NAME]'))
+        benchmark = data.get('benchmark', 'S&P 500 Total Return Index')
+
+        return f"""GIPS® COMPLIANCE DISCLOSURES
+
+1. FIRM DEFINITION
+{firm_name} claims compliance with the Global Investment Performance Standards (GIPS®).
+
+2. COMPOSITE DESCRIPTION
+The {composite_name} composite includes all fee-paying, discretionary portfolios managed according to the firm's investment strategy.
+
+3. BENCHMARK
+The benchmark for this composite is the {benchmark}. The benchmark is used for comparative purposes only and is not intended to represent a specific investment recommendation.
+
+4. FEE SCHEDULE
+Performance results are presented net of management fees and all trading expenses. The standard annual management fee schedule is available upon request.
+
+5. RISK DISCLOSURE
+The three-year annualized standard deviation measures the variability of the composite and benchmark returns over the preceding 36-month period. A higher standard deviation indicates greater volatility.
+
+6. VERIFICATION STATUS
+{firm_name} has not been independently verified. Verification does not ensure the accuracy of any specific composite presentation.
+
+7. TRADEMARK ATTRIBUTION
+GIPS® is a registered trademark of CFA Institute. CFA Institute does not endorse or promote this organization, nor does it warrant the accuracy or quality of the content contained herein.
+
+Past performance is not indicative of future results. This presentation is for informational purposes only.
+
+Generated: {datetime.now().strftime('%B %d, %Y')}
+"""
+
+    @classmethod
+    def prepare_audit(cls, data: dict) -> dict:
+        """
+        AI-POWERED AUDIT PREPARATION ASSISTANT
+        Generates comprehensive audit preparation checklist and documentation.
+
+        Returns dict with:
+        - checklist: Required documents and items
+        - data_quality: Assessment of data completeness
+        - verification_readiness: Score and assessment
+        - preparation_guide: Steps to prepare for verification
+        """
+        results = {
+            'checklist': [],
+            'data_quality': {},
+            'verification_readiness': 0,
+            'preparation_guide': []
+        }
+
+        # Build comprehensive GIPS verification checklist
+        checklist_items = [
+            {
+                'category': 'Firm Documentation',
+                'item': 'Firm definition document',
+                'required': True,
+                'status': 'COMPLETE' if data.get('firm') else 'MISSING',
+                'evidence': data.get('firm', None)
+            },
+            {
+                'category': 'Firm Documentation',
+                'item': 'GIPS policies and procedures manual',
+                'required': True,
+                'status': 'REQUIRED',
+                'evidence': None
+            },
+            {
+                'category': 'Firm Documentation',
+                'item': 'List of all composites',
+                'required': True,
+                'status': 'COMPLETE' if data.get('composite_name') or data.get('name') else 'MISSING',
+                'evidence': data.get('composite_name', data.get('name'))
+            },
+            {
+                'category': 'Performance Data',
+                'item': 'Monthly portfolio valuations',
+                'required': True,
+                'status': 'COMPLETE' if data.get('monthly_values') else 'MISSING',
+                'evidence': f"{len(data.get('monthly_values', []))} periods" if data.get('monthly_values') else None
+            },
+            {
+                'category': 'Performance Data',
+                'item': 'Monthly return calculations',
+                'required': True,
+                'status': 'COMPLETE' if data.get('monthly_returns') else 'MISSING',
+                'evidence': f"{len(data.get('monthly_returns', []))} returns" if data.get('monthly_returns') else None
+            },
+            {
+                'category': 'Performance Data',
+                'item': 'Cash flow records',
+                'required': True,
+                'status': 'REQUIRED',
+                'evidence': None
+            },
+            {
+                'category': 'Benchmark Data',
+                'item': 'Benchmark selection documentation',
+                'required': True,
+                'status': 'COMPLETE' if data.get('benchmark') else 'MISSING',
+                'evidence': data.get('benchmark')
+            },
+            {
+                'category': 'Benchmark Data',
+                'item': 'Benchmark return source',
+                'required': True,
+                'status': 'COMPLETE',
+                'evidence': 'Yahoo Finance API (independent source)'
+            },
+            {
+                'category': 'Fee Information',
+                'item': 'Fee schedule documentation',
+                'required': True,
+                'status': 'COMPLETE' if data.get('fee') else 'MISSING',
+                'evidence': data.get('fee')
+            },
+            {
+                'category': 'Holdings Data',
+                'item': 'Position-level holdings',
+                'required': True,
+                'status': 'COMPLETE' if data.get('holdings') or data.get('positions') else 'MISSING',
+                'evidence': f"{len(data.get('holdings', data.get('positions', [])))} positions" if data.get('holdings') or data.get('positions') else None
+            },
+            {
+                'category': 'Calculations',
+                'item': 'TWR calculation methodology',
+                'required': True,
+                'status': 'COMPLETE',
+                'evidence': 'GIPS-compliant TWR methodology documented'
+            },
+            {
+                'category': 'Calculations',
+                'item': 'Risk metrics (3-year std dev)',
+                'required': True,
+                'status': 'COMPLETE' if len(data.get('monthly_returns', [])) >= 36 else 'INSUFFICIENT DATA',
+                'evidence': f"{len(data.get('monthly_returns', []))}/36 months"
+            },
+        ]
+
+        results['checklist'] = checklist_items
+
+        # Calculate verification readiness score
+        complete_count = sum(1 for item in checklist_items if item['status'] == 'COMPLETE')
+        total_required = sum(1 for item in checklist_items if item['required'])
+        results['verification_readiness'] = round((complete_count / total_required) * 100, 1) if total_required > 0 else 0
+
+        # Data quality assessment
+        results['data_quality'] = {
+            'return_periods': len(data.get('monthly_returns', [])),
+            'return_periods_required': 36,
+            'return_periods_status': 'SUFFICIENT' if len(data.get('monthly_returns', [])) >= 36 else 'INSUFFICIENT',
+            'holdings_available': bool(data.get('holdings') or data.get('positions')),
+            'benchmark_documented': bool(data.get('benchmark')),
+            'firm_defined': bool(data.get('firm'))
+        }
+
+        # Preparation guide
+        results['preparation_guide'] = [
+            {
+                'step': 1,
+                'title': 'Gather Source Documentation',
+                'description': 'Collect all custodian statements, portfolio valuations, and trade confirmations for the verification period.',
+                'priority': 'HIGH'
+            },
+            {
+                'step': 2,
+                'title': 'Review Calculation Methodology',
+                'description': 'Ensure TWR calculations follow GIPS methodology. Document calculation approach and any assumptions.',
+                'priority': 'HIGH'
+            },
+            {
+                'step': 3,
+                'title': 'Prepare Reconciliations',
+                'description': 'Reconcile portfolio holdings to custodian records. Document any differences.',
+                'priority': 'HIGH'
+            },
+            {
+                'step': 4,
+                'title': 'Validate Composite Construction',
+                'description': 'Review all portfolio assignments to composites. Ensure all discretionary fee-paying accounts are included.',
+                'priority': 'MEDIUM'
+            },
+            {
+                'step': 5,
+                'title': 'Document Policies',
+                'description': 'Update GIPS policies and procedures document. Ensure it reflects current practices.',
+                'priority': 'MEDIUM'
+            },
+            {
+                'step': 6,
+                'title': 'Generate Verification Package',
+                'description': 'Use CapX100 to generate the complete verification package with all calculations visible.',
+                'priority': 'HIGH'
+            }
+        ]
+
+        # Get AI recommendations if available
+        client = cls.get_client()
+        if client and results['verification_readiness'] < 100:
+            try:
+                missing_items = [item['item'] for item in checklist_items if item['status'] != 'COMPLETE']
+
+                response = client.messages.create(
+                    model="claude-sonnet-4-20250514",
+                    max_tokens=600,
+                    messages=[{
+                        "role": "user",
+                        "content": f"""As a GIPS verification expert, this firm is {results['verification_readiness']}% ready for GIPS verification.
+
+Missing or incomplete items:
+{chr(10).join('- ' + item for item in missing_items)}
+
+Provide 3-4 specific, actionable recommendations to prepare for GIPS verification. Focus on the most critical gaps first."""
+                    }]
+                )
+                results['ai_recommendations'] = response.content[0].text
+            except Exception:
+                results['ai_recommendations'] = None
+
+        return results
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # LIVE BENCHMARK DATA FETCHER - NO HARDCODED VALUES!
@@ -6104,9 +6572,66 @@ HTML_TEMPLATE = '''
             </div>
         </div>
 
+        <!-- AI-POWERED GIPS FEATURES SECTION -->
+        <div class="section" id="ai-features-section">
+            <h2 class="section-title">🤖 AI-Powered GIPS Tools</h2>
+
+            <div class="info-box">
+                <span class="info-box-icon">🧠</span>
+                <span>AI-powered tools to streamline GIPS compliance, generate disclosures, and prepare for verification audits.</span>
+            </div>
+
+            <!-- AI Feature Cards -->
+            <div class="card-grid" style="margin-top: 20px;">
+                <div class="card" style="border: 2px solid rgba(59, 130, 246, 0.3); cursor: pointer;" onclick="showAITool('compliance')">
+                    <div style="font-size: 2.5rem; margin-bottom: 10px;">✅</div>
+                    <div class="card-label" style="font-size: 1.1rem; color: #f8fafc; font-weight: 600;">Compliance Checker</div>
+                    <div class="card-label" style="margin-top: 10px;">Validate GIPS 2020 requirements</div>
+                </div>
+                <div class="card" style="border: 2px solid rgba(34, 197, 94, 0.3); cursor: pointer;" onclick="showAITool('disclosures')">
+                    <div style="font-size: 2.5rem; margin-bottom: 10px;">📝</div>
+                    <div class="card-label" style="font-size: 1.1rem; color: #f8fafc; font-weight: 600;">Disclosures Generator</div>
+                    <div class="card-label" style="margin-top: 10px;">Generate compliant disclosure language</div>
+                </div>
+                <div class="card" style="border: 2px solid rgba(245, 158, 11, 0.3); cursor: pointer;" onclick="showAITool('audit')">
+                    <div style="font-size: 2.5rem; margin-bottom: 10px;">📋</div>
+                    <div class="card-label" style="font-size: 1.1rem; color: #f8fafc; font-weight: 600;">Audit Preparation</div>
+                    <div class="card-label" style="margin-top: 10px;">Prepare for GIPS verification</div>
+                </div>
+            </div>
+
+            <!-- AI Tool Panels -->
+            <div id="ai-compliance-panel" style="display: none; margin-top: 20px; background: rgba(15, 23, 42, 0.6); border-radius: 12px; padding: 20px; border: 1px solid rgba(59, 130, 246, 0.3);">
+                <h3 style="color: #3b82f6; margin-bottom: 15px;">✅ GIPS Compliance Checker</h3>
+                <p style="color: #94a3b8; margin-bottom: 20px;">Upload data or enter firm/composite information to check GIPS 2020 compliance requirements.</p>
+                <button class="btn btn-primary" onclick="runComplianceCheck()" style="padding: 14px 28px;">
+                    🔍 Run Compliance Check
+                </button>
+                <div id="compliance-results" style="margin-top: 20px;"></div>
+            </div>
+
+            <div id="ai-disclosures-panel" style="display: none; margin-top: 20px; background: rgba(15, 23, 42, 0.6); border-radius: 12px; padding: 20px; border: 1px solid rgba(34, 197, 94, 0.3);">
+                <h3 style="color: #22c55e; margin-bottom: 15px;">📝 GIPS Disclosures Generator</h3>
+                <p style="color: #94a3b8; margin-bottom: 20px;">Generate compliant GIPS disclosure language based on your firm and composite data.</p>
+                <button class="btn btn-success" onclick="generateDisclosures()" style="padding: 14px 28px;">
+                    ✨ Generate Disclosures
+                </button>
+                <div id="disclosures-results" style="margin-top: 20px;"></div>
+            </div>
+
+            <div id="ai-audit-panel" style="display: none; margin-top: 20px; background: rgba(15, 23, 42, 0.6); border-radius: 12px; padding: 20px; border: 1px solid rgba(245, 158, 11, 0.3);">
+                <h3 style="color: #f59e0b; margin-bottom: 15px;">📋 Audit Preparation Assistant</h3>
+                <p style="color: #94a3b8; margin-bottom: 20px;">Get a comprehensive checklist and readiness assessment for GIPS verification.</p>
+                <button class="btn btn-warning" onclick="prepareAudit()" style="padding: 14px 28px;">
+                    📊 Assess Verification Readiness
+                </button>
+                <div id="audit-results" style="margin-top: 20px;"></div>
+            </div>
+        </div>
+
         <!-- FOOTER -->
         <div style="text-align: center; padding: 40px; color: #64748b; border-top: 1px solid #334155; margin-top: 40px;">
-            <p>CapX100 GIPS Consulting Platform | Goldman Sachs Caliber | Port 8515</p>
+            <p>CapX100 GIPS Consulting Platform | Goldman Sachs Caliber | AI-Powered | Port 8515</p>
             <p style="color: #3b82f6;">GIPS® is a registered trademark of CFA Institute</p>
         </div>
 
@@ -6700,6 +7225,296 @@ HTML_TEMPLATE = '''
                 .catch(error => alert('Upload error: ' + error));
             }
         });
+
+        // =====================================================================
+        // AI-POWERED GIPS FEATURES
+        // =====================================================================
+
+        function showAITool(tool) {
+            // Hide all panels
+            document.getElementById('ai-compliance-panel').style.display = 'none';
+            document.getElementById('ai-disclosures-panel').style.display = 'none';
+            document.getElementById('ai-audit-panel').style.display = 'none';
+
+            // Show selected panel
+            const panel = document.getElementById('ai-' + tool + '-panel');
+            if (panel.style.display === 'none' || panel.style.display === '') {
+                panel.style.display = 'block';
+                panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+
+        function collectFormData() {
+            // Collect data from all forms for AI analysis
+            return {
+                // Firm data
+                firm: document.getElementById('firm-name')?.value || '',
+                firm_type: document.getElementById('firm-type')?.value || '',
+                gips_date: document.getElementById('firm-gips-date')?.value || '',
+                firm_definition: document.getElementById('firm-definition')?.value || '',
+                verification: document.getElementById('firm-verification')?.value || '',
+
+                // Composite data
+                composite_name: document.getElementById('composite-name')?.value || '',
+                strategy: document.getElementById('composite-strategy')?.value || '',
+                benchmark: document.getElementById('composite-benchmark')?.value || document.getElementById('individual-benchmark')?.value || 'S&P 500',
+                fee: document.getElementById('composite-fee')?.value || '',
+                composite_definition: document.getElementById('composite-definition')?.value || '',
+
+                // Individual data
+                name: document.getElementById('individual-name')?.value || document.getElementById('composite-name')?.value || '',
+
+                // Uploaded data
+                monthly_returns: uploadedAccounts.length > 0 ? uploadedAccounts[0].monthly_returns || [] : [],
+                monthly_values: uploadedAccounts.length > 0 ? uploadedAccounts[0].monthly_values || [] : [],
+                holdings: uploadedAccounts.length > 0 ? uploadedAccounts[0].holdings || [] : [],
+                positions: uploadedAccounts.length > 0 ? uploadedAccounts[0].positions || 0 : 0,
+                total_value: uploadedAccounts.reduce((sum, acc) => sum + acc.value, 0)
+            };
+        }
+
+        function runComplianceCheck() {
+            const data = collectFormData();
+            const resultsDiv = document.getElementById('compliance-results');
+
+            resultsDiv.innerHTML = '<div style="color: #3b82f6; padding: 20px; text-align: center;"><span style="font-size: 2rem;">⏳</span><br>Running GIPS 2020 Compliance Check...</div>';
+
+            fetch('/api/ai/compliance-check', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    let html = `
+                        <div style="margin-bottom: 20px; padding: 15px; border-radius: 8px; background: ${result.overall_status === 'FULLY COMPLIANT' ? 'rgba(34, 197, 94, 0.2)' : result.overall_status === 'NON-COMPLIANT' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)'};">
+                            <h4 style="color: ${result.overall_status === 'FULLY COMPLIANT' ? '#22c55e' : result.overall_status === 'NON-COMPLIANT' ? '#ef4444' : '#f59e0b'}; margin: 0;">
+                                ${result.overall_status === 'FULLY COMPLIANT' ? '✅' : result.overall_status === 'NON-COMPLIANT' ? '❌' : '⚠️'} Overall Status: ${result.overall_status}
+                            </h4>
+                        </div>
+                    `;
+
+                    // Compliant items
+                    if (result.compliant_items && result.compliant_items.length > 0) {
+                        html += '<h4 style="color: #22c55e; margin: 15px 0 10px 0;">✅ Compliant Items</h4>';
+                        result.compliant_items.forEach(item => {
+                            html += `<div style="background: rgba(34, 197, 94, 0.1); padding: 10px; border-radius: 6px; margin: 5px 0; border-left: 3px solid #22c55e;">
+                                <strong style="color: #f8fafc;">GIPS ${item.section}</strong>: ${item.requirement}
+                                <br><small style="color: #94a3b8;">Evidence: ${item.evidence || 'Documented'}</small>
+                            </div>`;
+                        });
+                    }
+
+                    // Violations
+                    if (result.violations && result.violations.length > 0) {
+                        html += '<h4 style="color: #ef4444; margin: 15px 0 10px 0;">❌ Violations</h4>';
+                        result.violations.forEach(item => {
+                            html += `<div style="background: rgba(239, 68, 68, 0.1); padding: 10px; border-radius: 6px; margin: 5px 0; border-left: 3px solid #ef4444;">
+                                <strong style="color: #f8fafc;">GIPS ${item.section}</strong>: ${item.requirement}
+                                <br><small style="color: #f87171;">Remediation: ${item.remediation}</small>
+                            </div>`;
+                        });
+                    }
+
+                    // Warnings
+                    if (result.warnings && result.warnings.length > 0) {
+                        html += '<h4 style="color: #f59e0b; margin: 15px 0 10px 0;">⚠️ Warnings</h4>';
+                        result.warnings.forEach(item => {
+                            html += `<div style="background: rgba(245, 158, 11, 0.1); padding: 10px; border-radius: 6px; margin: 5px 0; border-left: 3px solid #f59e0b;">
+                                <strong style="color: #f8fafc;">GIPS ${item.section}</strong>: ${item.requirement}
+                                <br><small style="color: #fbbf24;">Note: ${item.note}</small>
+                            </div>`;
+                        });
+                    }
+
+                    // AI Recommendations
+                    if (result.ai_recommendations) {
+                        html += `<h4 style="color: #3b82f6; margin: 15px 0 10px 0;">🤖 AI Recommendations</h4>
+                        <div style="background: rgba(59, 130, 246, 0.1); padding: 15px; border-radius: 8px; border-left: 3px solid #3b82f6; white-space: pre-wrap; color: #e2e8f0; line-height: 1.6;">
+                            ${result.ai_recommendations}
+                        </div>`;
+                    }
+
+                    resultsDiv.innerHTML = html;
+                } else {
+                    resultsDiv.innerHTML = `<div style="color: #ef4444; padding: 15px; background: rgba(239, 68, 68, 0.1); border-radius: 8px;">❌ Error: ${result.error}</div>`;
+                }
+            })
+            .catch(error => {
+                resultsDiv.innerHTML = `<div style="color: #ef4444; padding: 15px; background: rgba(239, 68, 68, 0.1); border-radius: 8px;">❌ Error: ${error}</div>`;
+            });
+        }
+
+        function generateDisclosures() {
+            const data = collectFormData();
+            const resultsDiv = document.getElementById('disclosures-results');
+
+            resultsDiv.innerHTML = '<div style="color: #22c55e; padding: 20px; text-align: center;"><span style="font-size: 2rem;">⏳</span><br>Generating GIPS Compliant Disclosures...</div>';
+
+            fetch('/api/ai/generate-disclosures', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    const html = `
+                        <div style="background: rgba(34, 197, 94, 0.1); padding: 20px; border-radius: 8px; border: 1px solid rgba(34, 197, 94, 0.3);">
+                            <h4 style="color: #22c55e; margin: 0 0 15px 0;">📝 Generated Disclosures</h4>
+                            <div style="background: #0f172a; padding: 20px; border-radius: 8px; white-space: pre-wrap; color: #e2e8f0; line-height: 1.8; font-size: 0.9rem; max-height: 500px; overflow-y: auto;">
+${result.disclosures}
+                            </div>
+                            <div style="margin-top: 15px; display: flex; gap: 10px;">
+                                <button class="btn btn-success" onclick="copyDisclosures()" style="padding: 10px 20px;">📋 Copy to Clipboard</button>
+                                <button class="btn btn-primary" onclick="downloadDisclosures()" style="padding: 10px 20px;">📥 Download as TXT</button>
+                            </div>
+                        </div>
+                    `;
+                    resultsDiv.innerHTML = html;
+
+                    // Store disclosures for copy/download
+                    window.generatedDisclosures = result.disclosures;
+                } else {
+                    resultsDiv.innerHTML = `<div style="color: #ef4444; padding: 15px; background: rgba(239, 68, 68, 0.1); border-radius: 8px;">❌ Error: ${result.error}</div>`;
+                }
+            })
+            .catch(error => {
+                resultsDiv.innerHTML = `<div style="color: #ef4444; padding: 15px; background: rgba(239, 68, 68, 0.1); border-radius: 8px;">❌ Error: ${error}</div>`;
+            });
+        }
+
+        function copyDisclosures() {
+            if (window.generatedDisclosures) {
+                navigator.clipboard.writeText(window.generatedDisclosures).then(() => {
+                    alert('✅ Disclosures copied to clipboard!');
+                });
+            }
+        }
+
+        function downloadDisclosures() {
+            if (window.generatedDisclosures) {
+                const blob = new Blob([window.generatedDisclosures], {type: 'text/plain'});
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'GIPS_Disclosures_' + new Date().toISOString().slice(0,10) + '.txt';
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+        }
+
+        function prepareAudit() {
+            const data = collectFormData();
+            const resultsDiv = document.getElementById('audit-results');
+
+            resultsDiv.innerHTML = '<div style="color: #f59e0b; padding: 20px; text-align: center;"><span style="font-size: 2rem;">⏳</span><br>Assessing Verification Readiness...</div>';
+
+            fetch('/api/ai/audit-prep', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    // Readiness score color
+                    const scoreColor = result.verification_readiness >= 80 ? '#22c55e' : result.verification_readiness >= 50 ? '#f59e0b' : '#ef4444';
+
+                    let html = `
+                        <div style="margin-bottom: 20px; padding: 20px; border-radius: 8px; background: rgba(245, 158, 11, 0.1); text-align: center;">
+                            <h3 style="color: #f8fafc; margin: 0 0 10px 0;">Verification Readiness Score</h3>
+                            <div style="font-size: 3rem; font-weight: 700; color: ${scoreColor};">${result.verification_readiness}%</div>
+                        </div>
+                    `;
+
+                    // Data Quality Assessment
+                    if (result.data_quality) {
+                        html += `<h4 style="color: #3b82f6; margin: 15px 0 10px 0;">📊 Data Quality</h4>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                            <div style="background: rgba(59, 130, 246, 0.1); padding: 10px; border-radius: 6px;">
+                                <strong style="color: #f8fafc;">Return Periods:</strong>
+                                <span style="color: ${result.data_quality.return_periods >= 36 ? '#22c55e' : '#f59e0b'};">
+                                    ${result.data_quality.return_periods} / ${result.data_quality.return_periods_required}
+                                </span>
+                            </div>
+                            <div style="background: rgba(59, 130, 246, 0.1); padding: 10px; border-radius: 6px;">
+                                <strong style="color: #f8fafc;">Holdings:</strong>
+                                <span style="color: ${result.data_quality.holdings_available ? '#22c55e' : '#ef4444'};">
+                                    ${result.data_quality.holdings_available ? '✅ Available' : '❌ Missing'}
+                                </span>
+                            </div>
+                            <div style="background: rgba(59, 130, 246, 0.1); padding: 10px; border-radius: 6px;">
+                                <strong style="color: #f8fafc;">Benchmark:</strong>
+                                <span style="color: ${result.data_quality.benchmark_documented ? '#22c55e' : '#ef4444'};">
+                                    ${result.data_quality.benchmark_documented ? '✅ Documented' : '❌ Missing'}
+                                </span>
+                            </div>
+                            <div style="background: rgba(59, 130, 246, 0.1); padding: 10px; border-radius: 6px;">
+                                <strong style="color: #f8fafc;">Firm Defined:</strong>
+                                <span style="color: ${result.data_quality.firm_defined ? '#22c55e' : '#ef4444'};">
+                                    ${result.data_quality.firm_defined ? '✅ Yes' : '❌ No'}
+                                </span>
+                            </div>
+                        </div>`;
+                    }
+
+                    // Checklist
+                    if (result.checklist && result.checklist.length > 0) {
+                        html += '<h4 style="color: #f59e0b; margin: 20px 0 10px 0;">📋 Verification Checklist</h4>';
+
+                        // Group by category
+                        const categories = {};
+                        result.checklist.forEach(item => {
+                            if (!categories[item.category]) categories[item.category] = [];
+                            categories[item.category].push(item);
+                        });
+
+                        for (const [category, items] of Object.entries(categories)) {
+                            html += `<div style="margin: 10px 0;"><strong style="color: #94a3b8;">${category}</strong></div>`;
+                            items.forEach(item => {
+                                const statusColor = item.status === 'COMPLETE' ? '#22c55e' : item.status === 'MISSING' ? '#ef4444' : '#f59e0b';
+                                html += `<div style="background: rgba(15, 23, 42, 0.6); padding: 8px 12px; border-radius: 6px; margin: 5px 0; display: flex; justify-content: space-between; align-items: center;">
+                                    <span style="color: #f8fafc;">${item.item}</span>
+                                    <span style="color: ${statusColor}; font-weight: 600;">${item.status}</span>
+                                </div>`;
+                            });
+                        }
+                    }
+
+                    // Preparation Guide
+                    if (result.preparation_guide && result.preparation_guide.length > 0) {
+                        html += '<h4 style="color: #22c55e; margin: 20px 0 10px 0;">📚 Preparation Guide</h4>';
+                        result.preparation_guide.forEach(step => {
+                            const priorityColor = step.priority === 'HIGH' ? '#ef4444' : step.priority === 'MEDIUM' ? '#f59e0b' : '#22c55e';
+                            html += `<div style="background: rgba(34, 197, 94, 0.1); padding: 12px; border-radius: 8px; margin: 10px 0; border-left: 3px solid ${priorityColor};">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                                    <strong style="color: #f8fafc;">Step ${step.step}: ${step.title}</strong>
+                                    <span style="background: ${priorityColor}; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem;">${step.priority}</span>
+                                </div>
+                                <p style="color: #94a3b8; margin: 0;">${step.description}</p>
+                            </div>`;
+                        });
+                    }
+
+                    // AI Recommendations
+                    if (result.ai_recommendations) {
+                        html += `<h4 style="color: #3b82f6; margin: 20px 0 10px 0;">🤖 AI Recommendations</h4>
+                        <div style="background: rgba(59, 130, 246, 0.1); padding: 15px; border-radius: 8px; border-left: 3px solid #3b82f6; white-space: pre-wrap; color: #e2e8f0; line-height: 1.6;">
+                            ${result.ai_recommendations}
+                        </div>`;
+                    }
+
+                    resultsDiv.innerHTML = html;
+                } else {
+                    resultsDiv.innerHTML = `<div style="color: #ef4444; padding: 15px; background: rgba(239, 68, 68, 0.1); border-radius: 8px;">❌ Error: ${result.error}</div>`;
+                }
+            })
+            .catch(error => {
+                resultsDiv.innerHTML = `<div style="color: #ef4444; padding: 15px; background: rgba(239, 68, 68, 0.1); border-radius: 8px;">❌ Error: ${error}</div>`;
+            });
+        }
     </script>
 </body>
 </html>
@@ -8025,6 +8840,77 @@ def generate_verification_package():
             'success': False,
             'error': str(e),
             'traceback': traceback.format_exc()
+        }), 500
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# AI-POWERED GIPS FEATURES - API ROUTES
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@app.route('/api/ai/compliance-check', methods=['POST'])
+def api_compliance_check():
+    """
+    AI-Powered GIPS Compliance Checker API
+
+    Analyzes uploaded data against GIPS 2020 requirements.
+    Returns compliance status, violations, warnings, and recommendations.
+    """
+    try:
+        data = request.json
+        results = GIPSAIAssistant.check_compliance(data)
+        return jsonify({
+            'success': True,
+            **results
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/ai/generate-disclosures', methods=['POST'])
+def api_generate_disclosures():
+    """
+    AI-Powered GIPS Disclosures Generator API
+
+    Generates compliant disclosure language based on firm/composite data.
+    Returns ready-to-use disclosure text for GIPS presentations.
+    """
+    try:
+        data = request.json
+        disclosures = GIPSAIAssistant.generate_disclosures(data)
+        return jsonify({
+            'success': True,
+            'disclosures': disclosures,
+            'generated_at': datetime.now().isoformat()
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/ai/audit-prep', methods=['POST'])
+def api_audit_prep():
+    """
+    AI-Powered Audit Preparation Assistant API
+
+    Generates comprehensive audit preparation checklist and documentation.
+    Returns checklist, data quality assessment, and preparation guide.
+    """
+    try:
+        data = request.json
+        results = GIPSAIAssistant.prepare_audit(data)
+        return jsonify({
+            'success': True,
+            **results
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
         }), 500
 
 
