@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>GIPS Calculation Verification - CapX100</title>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; background: #f5f7fa; }
+        h1 { color: #1a1f3e; border-bottom: 3px solid #003366; padding-bottom: 10px; }
+        h2 { color: #003366; margin-top: 30px; }
+        h3 { color: #1a1f3e; }
+        .header { background: #1a1f3e; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        .header h1 { color: white; border: none; margin: 0; }
+        table { border-collapse: collapse; width: 100%; margin: 15px 0; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        th { background: #1a1f3e; color: white; padding: 12px 15px; text-align: left; font-size: 14px; }
+        td { padding: 10px 15px; border-bottom: 1px solid #e0e0e0; font-size: 13px; }
+        tr:hover { background: #f8f9fa; }
+        .formula { background: #e8f4f8; padding: 15px; border-left: 4px solid #003366; margin: 10px 0; font-family: 'Courier New', monospace; }
+        .result { background: #d4edda; padding: 10px 15px; border-radius: 4px; font-weight: bold; color: #155724; }
+        .warning { background: #fff3cd; padding: 10px 15px; border-radius: 4px; color: #856404; }
+        .step { background: #f8f9fa; padding: 8px 12px; margin: 5px 0; border-radius: 4px; }
+        .verified { color: #28a745; font-weight: bold; }
+        .section { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .metric-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin: 20px 0; }
+        .metric-box { background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #e0e0e0; }
+        .metric-value { font-size: 24px; font-weight: bold; color: #1a1f3e; }
+        .metric-label { font-size: 12px; color: #666; margin-top: 5px; }
+        code { background: #e9ecef; padding: 2px 6px; border-radius: 3px; font-family: 'Courier New', monospace; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📊 GIPS CALCULATION VERIFICATION</h1>
+        <p>CapX100 Investment Management | Generated: January 21, 2026 at 14:13</p>
+    </div>
+
+    <div class="section">
+        <h2>📌 Input Data Used for Calculations</h2>
+        
+        <h3>Annual Returns</h3>
+        <table>
+            <tr><th>Year</th><th>Portfolio Return</th><th>Benchmark Return</th><th>Excess Return</th></tr>
+            <tr><td>2020</td><td>+8.20%</td><td>+7.20%</td><td>+1.00%</td></tr>
+            <tr><td>2021</td><td>+15.60%</td><td>+14.50%</td><td>+1.10%</td></tr>
+            <tr><td>2022</td><td>-4.80%</td><td>-5.80%</td><td>+1.00%</td></tr>
+            <tr><td>2023</td><td>+14.20%</td><td>+13.20%</td><td>+1.00%</td></tr>
+            <tr><td>2024</td><td>+10.80%</td><td>+9.80%</td><td>+1.00%</td></tr>
+        </table>
+        
+        <h3>Monthly Returns (60 months)</h3>
+        <p>Full monthly return series provided: 60 data points</p>
+        <p>Monthly range: -3.50% to 4.50%</p>
+    </div>
+
+    <div class="section">
+        <h2>1️⃣ Cumulative Return</h2>
+        
+        <div class="formula">
+            <strong>Formula:</strong> Cumulative Return = ∏(1 + Rᵢ) - 1<br>
+            <strong>Method:</strong> Geometric compounding (GIPS/CFA standard)
+        </div>
+        
+        <h3>Step-by-Step Calculation:</h3>
+        <div class="step">Step 1: (1 + 0.082) = 1.0820</div>
+        <div class="step">Step 2: 1.0820 × (1 + 0.156) = 1.0820 × 1.1560 = 1.2508</div>
+        <div class="step">Step 3: 1.2508 × (1 - 0.048) = 1.2508 × 0.9520 = 1.1908</div>
+        <div class="step">Step 4: 1.1908 × (1 + 0.142) = 1.1908 × 1.1420 = 1.3599</div>
+        <div class="step">Step 5: 1.3599 × (1 + 0.108) = 1.3599 × 1.1080 = 1.5067</div>
+        <div class="step">Step 6: 1.5067 - 1 = 0.5067 = <strong>50.67%</strong></div>
+        
+        <div class="result">
+            ✓ Portfolio Cumulative Return: <span class="verified">50.67%</span><br>
+            ✓ Benchmark Cumulative Return: <span class="verified">43.71%</span><br>
+            ✓ Excess Cumulative Return: <span class="verified">6.96%</span>
+        </div>
+
+        <div class="warning">
+            <strong>Note:</strong> If you previously saw 100%+ cumulative return, that calculation used different input data 
+            (possibly different annual returns or a different time period).
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>2️⃣ Annualized Return</h2>
+        
+        <div class="formula">
+            <strong>Formula:</strong> Annualized Return = (1 + Cumulative)^(1/n) - 1<br>
+            <strong>Where:</strong> n = number of years = 5
+        </div>
+        
+        <h3>Calculation:</h3>
+        <div class="step">Annualized = (1 + 0.5067)^(1/5) - 1</div>
+        <div class="step">Annualized = (1.5067)^0.2000 - 1</div>
+        <div class="step">Annualized = 1.0854 - 1 = 0.0854</div>
+        
+        <div class="result">
+            ✓ Portfolio Annualized Return: <span class="verified">8.54%</span><br>
+            ✓ Benchmark Annualized Return: <span class="verified">7.52%</span>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>3️⃣ Volatility (Standard Deviation)</h2>
+        
+        <div class="formula">
+            <strong>Formula (Monthly → Annual):</strong> σ_annual = σ_monthly × √12<br>
+            <strong>This is the CFA/GIPS standard methodology</strong>
+        </div>
+        
+        <h3>Calculation:</h3>
+        <div class="step">Monthly Std Dev = 0.0187</div>
+        <div class="step">Annualized = 0.0187 × √12 = 0.0187 × 3.4641</div>
+        
+        <div class="result">
+            ✓ Annualized Volatility (from monthly): <span class="verified">6.47%</span><br>
+            ✓ Volatility (from annual returns): <span class="verified">7.28%</span>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>4️⃣ Sharpe Ratio</h2>
+        
+        <div class="formula">
+            <strong>Formula:</strong> Sharpe = (Rp - Rf) / σp<br>
+            <strong>Where:</strong> Rp = 8.54%, Rf = 4.0%, σp = 6.47%
+        </div>
+        
+        <h3>Calculation:</h3>
+        <div class="step">Sharpe = (8.54% - 4.0%) / 6.47%</div>
+        <div class="step">Sharpe = 4.54% / 6.47%</div>
+        
+        <div class="result">
+            ✓ Sharpe Ratio: <span class="verified">0.70</span>
+             (Good)
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>5️⃣ Sortino Ratio</h2>
+        
+        <div class="formula">
+            <strong>Formula:</strong> Sortino = (Rp - Rf) / σ_downside<br>
+            <strong>Where:</strong> σ_downside only considers negative returns
+        </div>
+        
+        <h3>Calculation:</h3>
+        <div class="step">Negative months: 15 out of 60</div>
+        <div class="step">Downside deviation (monthly): 0.0085</div>
+        <div class="step">Downside deviation (annual): 0.0294</div>
+        <div class="step">Sortino = (8.54% - 4.0%) / 2.94%</div>
+        
+        <div class="result">
+            ✓ Sortino Ratio: <span class="verified">1.54</span>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>6️⃣ Maximum Drawdown</h2>
+        
+        <div class="formula">
+            <strong>Formula:</strong> Max DD = max[(Peak - Trough) / Peak]<br>
+            <strong>Method:</strong> Calculate running maximum, then measure decline from each peak
+        </div>
+        
+        <div class="result">
+            ✓ Maximum Drawdown: <span class="verified">9.88%</span>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>7️⃣ Calmar Ratio</h2>
+        
+        <div class="formula">
+            <strong>Formula:</strong> Calmar = Annualized Return / |Max Drawdown|<br>
+            <strong>Where:</strong> Rp = 8.54%, Max DD = 9.88%
+        </div>
+        
+        <h3>Calculation:</h3>
+        <div class="step">Calmar = 8.54% / 9.88%</div>
+        
+        <div class="result">
+            ✓ Calmar Ratio: <span class="verified">0.86</span>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>8️⃣ Jensen's Alpha (CAPM)</h2>
+        
+        <div class="formula">
+            <strong>Formula:</strong> α = Rp - [Rf + β × (Rm - Rf)]<br>
+            <strong>Where:</strong> β = 1.0 (assumed), Rf = 4.0%, Rm = 7.52%
+        </div>
+        
+        <h3>Calculation:</h3>
+        <div class="step">α = 8.54% - [4.0% + 1.0 × (7.52% - 4.0%)]</div>
+        <div class="step">α = 8.54% - [4.0% + 3.52%]</div>
+        <div class="step">α = 8.54% - 7.52%</div>
+        
+        <div class="result">
+            ✓ Jensen's Alpha: <span class="verified">+1.02%</span>
+             (Outperforming)
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>9️⃣ Information Ratio</h2>
+        
+        <div class="formula">
+            <strong>Formula:</strong> IR = Mean(Excess Returns) / Tracking Error<br>
+            <strong>Where:</strong> Excess Return = Portfolio Return - Benchmark Return
+        </div>
+        
+        <h3>Calculation:</h3>
+        <div class="step">Mean Excess Return: 1.02%</div>
+        <div class="step">Tracking Error: 0.04%</div>
+        <div class="step">IR = 1.02% / 0.04%</div>
+        
+        <div class="result">
+            ✓ Information Ratio: <span class="verified">25.50</span>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>📊 Summary of All Metrics</h2>
+        
+        <div class="metric-grid">
+            <div class="metric-box">
+                <div class="metric-value">50.7%</div>
+                <div class="metric-label">5-Yr Cumulative Return</div>
+            </div>
+            <div class="metric-box">
+                <div class="metric-value">8.5%</div>
+                <div class="metric-label">Annualized Return</div>
+            </div>
+            <div class="metric-box">
+                <div class="metric-value">6.5%</div>
+                <div class="metric-label">Annualized Volatility</div>
+            </div>
+            <div class="metric-box">
+                <div class="metric-value">0.70</div>
+                <div class="metric-label">Sharpe Ratio</div>
+            </div>
+            <div class="metric-box">
+                <div class="metric-value">1.54</div>
+                <div class="metric-label">Sortino Ratio</div>
+            </div>
+            <div class="metric-box">
+                <div class="metric-value">0.86</div>
+                <div class="metric-label">Calmar Ratio</div>
+            </div>
+            <div class="metric-box">
+                <div class="metric-value">9.9%</div>
+                <div class="metric-label">Max Drawdown</div>
+            </div>
+            <div class="metric-box">
+                <div class="metric-value">+1.0%</div>
+                <div class="metric-label">Jensen's Alpha</div>
+            </div>
+            <div class="metric-box">
+                <div class="metric-value">25.50</div>
+                <div class="metric-label">Information Ratio</div>
+            </div>
+        </div>
+        
+        <table>
+            <tr><th>Metric</th><th>Formula</th><th>Result</th><th>Status</th></tr>
+            <tr><td>Cumulative Return</td><td>∏(1 + Rᵢ) - 1</td><td>50.67%</td><td class="verified">✓ Verified</td></tr>
+            <tr><td>Annualized Return</td><td>(1 + Cum)^(1/n) - 1</td><td>8.54%</td><td class="verified">✓ Verified</td></tr>
+            <tr><td>Volatility</td><td>σ_monthly × √12</td><td>6.47%</td><td class="verified">✓ Verified</td></tr>
+            <tr><td>Sharpe Ratio</td><td>(Rp - Rf) / σp</td><td>0.70</td><td class="verified">✓ Verified</td></tr>
+            <tr><td>Sortino Ratio</td><td>(Rp - Rf) / σ_down</td><td>1.54</td><td class="verified">✓ Verified</td></tr>
+            <tr><td>Calmar Ratio</td><td>Rp / |Max DD|</td><td>0.86</td><td class="verified">✓ Verified</td></tr>
+            <tr><td>Max Drawdown</td><td>max(Peak-Trough)/Peak</td><td>9.88%</td><td class="verified">✓ Verified</td></tr>
+            <tr><td>Jensen's Alpha</td><td>Rp - [Rf + β(Rm-Rf)]</td><td>+1.02%</td><td class="verified">✓ Verified</td></tr>
+            <tr><td>Information Ratio</td><td>Excess / TE</td><td>25.50</td><td class="verified">✓ Verified</td></tr>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2>✅ Verification Complete</h2>
+        <p>All calculations follow <strong>CFA Institute / GIPS standards</strong>:</p>
+        <ul>
+            <li>Geometric compounding for cumulative returns</li>
+            <li>CAGR formula for annualized returns</li>
+            <li>√12 annualization factor for monthly volatility</li>
+            <li>Standard risk ratio definitions (Sharpe, Sortino, Calmar)</li>
+            <li>CAPM-based Jensen's Alpha</li>
+        </ul>
+        <p><strong>Generated:</strong> January 21, 2026 at 14:13</p>
+    </div>
+
+</body>
+</html>
