@@ -72,16 +72,23 @@ for line in lines:
             symbol = parts[0]
             name = parts[1] if len(parts) > 1 else symbol
             # Market Value is in column 5 (index 5)
+            # Sector is in column 12 (index 12)
+            # Unrealized G/L % is in column 8 (index 8) - use as YTD proxy
             try:
                 market_value_str = parts[5] if len(parts) > 5 else ""
                 market_value = float(market_value_str.replace('$', '').replace(',', ''))
+                # Get actual sector from CSV (column 12)
+                sector = parts[12] if len(parts) > 12 else 'Diversified'
+                # Get YTD from unrealized G/L % (column 8) as proxy
+                ytd_str = parts[8] if len(parts) > 8 else "0%"
+                ytd_return = float(ytd_str.replace('%', '').replace(',', ''))
                 positions.append({
                     'symbol': symbol,
                     'name': name[:20],
                     'market_value': market_value,
-                    'sector': 'Diversified',
-                    'weight': 0,
-                    'ytd_return': np.random.uniform(-5, 25)
+                    'sector': sector,
+                    'weight': 0,  # Calculated below
+                    'ytd_return': ytd_return
                 })
             except:
                 pass
