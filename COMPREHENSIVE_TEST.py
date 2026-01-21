@@ -94,15 +94,47 @@ for line in lines:
                 pass
 
     if in_monthly and line.strip() and not line.startswith('Date,'):
-        parts = line.split(',')
-        if len(parts) >= 4:
+        # Parse monthly valuations for MODIFIED DIETZ calculation
+        # Format: Date, Portfolio Value, Net Contributions, Monthly Return %
+        # Note: Dollar amounts with commas are NOT quoted, so they split incorrectly
+        import csv as csv_mod
+        row = list(csv_mod.reader([line]))[0]
+        if len(row) >= 4:
             try:
-                date = parts[0]
-                return_str = parts[-1].replace('%', '')
-                monthly_return = float(return_str) / 100
+                date = row[0]
+
+                # Find the return percentage (always ends with %)
+                return_idx = None
+                for i, val in enumerate(row):
+                    if '%' in val:
+                        return_idx = i
+                        break
+
+                if return_idx is None:
+                    continue
+
+                # Join everything between date and return, then split by $
+                values_str = ','.join(row[1:return_idx])
+                amounts = values_str.split('$')
+                portfolio_value = 0.0
+                net_contribution = 0.0
+
+                for amt in amounts:
+                    if amt.strip():
+                        clean_val = amt.replace(',', '').strip()
+                        try:
+                            val = float(clean_val)
+                            if portfolio_value == 0:
+                                portfolio_value = val
+                            else:
+                                net_contribution = val
+                        except:
+                            pass
+
                 monthly_returns.append({
                     'date': date,
-                    'return': monthly_return
+                    'portfolio_value': portfolio_value,
+                    'net_contribution': net_contribution
                 })
             except:
                 continue
@@ -112,14 +144,36 @@ total_value = sum(p['market_value'] for p in positions)
 for p in positions:
     p['weight'] = (p['market_value'] / total_value) * 100
 
-# Calculate annual returns
-returns = [mr['return'] for mr in monthly_returns]
+# ═══════════════════════════════════════════════════════════════════════════════
+# MODIFIED DIETZ TWR CALCULATION (GIPS 2020 COMPLIANT)
+# Same methodology as Main App for consistency
+# Formula: R = (EMV - BMV - CF) / (BMV + Sum(CF_i * W_i))
+# ═══════════════════════════════════════════════════════════════════════════════
+returns = []
+for i in range(1, len(monthly_returns)):
+    bmv = monthly_returns[i-1]['portfolio_value']
+    emv = monthly_returns[i]['portfolio_value']
+    cf = monthly_returns[i].get('net_contribution', 0)
+
+    if bmv > 0:
+        denominator = bmv + (cf * 0.5)
+        if denominator > 0:
+            monthly_return = (emv - bmv - cf) / denominator
+        else:
+            monthly_return = 0
+    else:
+        monthly_return = 0
+
+    monthly_returns[i]['return'] = monthly_return
+    returns.append(monthly_return)
+
+# Group by year for annual returns
 years = {}
-for mr in monthly_returns:
+for mr in monthly_returns[1:]:  # Skip first (baseline, no return)
     year = mr['date'][:4]
     if year not in years:
         years[year] = []
-    years[year].append(mr['return'])
+    years[year].append(mr.get('return', 0))
 
 annual_returns = []
 year_list = []
@@ -134,7 +188,7 @@ np.random.seed(42)
 benchmark_monthly = [r * 0.85 + np.random.normal(0, 0.005) for r in returns]
 benchmark_annual = [0.1840, 0.2689, -0.1811, 0.2629, 0.2502][:len(annual_returns)]
 
-test_pass(f"CSV parsed", f"{len(positions)} positions, {len(monthly_returns)} months")
+test_pass(f"CSV parsed", f"{len(positions)} positions, {len(returns)} months (Modified Dietz)")
 test_pass(f"Annual returns", f"{[f'{r*100:.2f}%' for r in annual_returns]}")
 test_pass(f"Total value", f"${total_value:,.2f}")
 
