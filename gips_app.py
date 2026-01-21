@@ -9706,7 +9706,7 @@ class VerificationPackageGenerator:
         ws2.column_dimensions['G'].width = 18
 
         # ═══════════════════════════════════════════════════════════════════
-        # SHEET 3: CUMULATIVE RETURN - STEP BY STEP
+        # SHEET 3: CUMULATIVE RETURN - FULL TRANSPARENCY (ALL PERIODS)
         # ═══════════════════════════════════════════════════════════════════
         ws3 = wb.create_sheet("3_Cumulative_Return")
         ws3.sheet_view.showGridLines = False
@@ -9720,55 +9720,63 @@ class VerificationPackageGenerator:
         ws3['B5'].font = cls.FORMULA_FONT
         ws3['B5'].fill = cls.LIGHT_FILL
 
-        ws3['B7'] = "STEP-BY-STEP MULTIPLICATION:"
+        ws3['B7'] = f"STEP-BY-STEP MULTIPLICATION (ALL {n_periods} periods):"
         ws3['B7'].font = cls.HEADER_FONT
         ws3['B7'].fill = cls.HEADER_FILL
-        ws3.merge_cells('B7:G7')
+        ws3.merge_cells('B7:F7')
 
-        ws3['B9'] = "First 15 periods:"
-        ws3['B9'].font = Font(bold=True)
+        # Headers
+        headers3 = ["Period", "Monthly Return", "(1 + R)", "Running Product", "Cumulative %"]
+        for col, header in enumerate(headers3, start=2):
+            ws3.cell(row=8, column=col, value=header).font = cls.HEADER_FONT
+            ws3.cell(row=8, column=col).fill = cls.HEADER_FILL
 
+        # Show ALL periods for full transparency
         running_product = 1.0
-        row = 10
-        for i in range(min(15, n_periods)):
+        for i in range(n_periods):
+            row = 9 + i
             running_product *= one_plus_returns[i]
-            ws3.cell(row=row, column=2, value=f"Period {i+1}")
-            ws3.cell(row=row, column=3, value=f"× {one_plus_returns[i]:.6f}").font = cls.CODE_FONT
-            ws3.cell(row=row, column=4, value=f"= {running_product:.8f}").font = cls.CODE_FONT
-            row += 1
+            cum_pct = (running_product - 1) * 100
 
-        if n_periods > 20:
-            ws3.cell(row=row, column=2, value="...")
-            row += 1
-            ws3.cell(row=row, column=2, value="Last 5 periods:").font = Font(bold=True)
-            row += 1
+            ws3.cell(row=row, column=2, value=i+1).border = cls.BORDER
+            ret_cell = ws3.cell(row=row, column=3, value=f"{returns[i]*100:.2f}%")
+            ret_cell.font = cls.GREEN_FONT if returns[i] >= 0 else cls.RED_FONT
+            ret_cell.border = cls.BORDER
+            ws3.cell(row=row, column=4, value=f"{one_plus_returns[i]:.6f}").font = cls.CODE_FONT
+            ws3.cell(row=row, column=4).border = cls.BORDER
+            ws3.cell(row=row, column=5, value=f"{running_product:.8f}").font = cls.CODE_FONT
+            ws3.cell(row=row, column=5).border = cls.BORDER
+            cum_cell = ws3.cell(row=row, column=6, value=f"{cum_pct:.2f}%")
+            cum_cell.font = cls.GREEN_FONT if cum_pct >= 0 else cls.RED_FONT
+            cum_cell.border = cls.BORDER
 
-            running_product = np.prod(one_plus_returns[:-5])
-            for i in range(n_periods-5, n_periods):
-                running_product *= one_plus_returns[i]
-                ws3.cell(row=row, column=2, value=f"Period {i+1}")
-                ws3.cell(row=row, column=3, value=f"× {one_plus_returns[i]:.6f}").font = cls.CODE_FONT
-                ws3.cell(row=row, column=4, value=f"= {running_product:.8f}").font = cls.CODE_FONT
-                row += 1
+            # Alternating row colors
+            if i % 2 == 0:
+                for col in range(2, 7):
+                    ws3.cell(row=row, column=col).fill = cls.LIGHT_FILL
 
-        row += 1
-        ws3.cell(row=row, column=2, value="FINAL CALCULATION:").font = Font(bold=True)
-        ws3.cell(row=row, column=2).fill = cls.GOLD_FILL
-        row += 1
-        ws3.cell(row=row, column=2, value=f"Product of all (1+R): {product_all:.8f}").font = Font(bold=True, size=12)
-        row += 1
-        ws3.cell(row=row, column=2, value=f"Subtract 1: {product_all:.8f} - 1 = {cumulative:.8f}").font = Font(bold=True, size=12)
-        row += 1
-        ws3.cell(row=row, column=2, value=f"CUMULATIVE RETURN:").font = Font(bold=True, size=14)
-        ws3.cell(row=row, column=3, value=f"{cumulative*100:.2f}%").font = Font(bold=True, size=16, color=cls.GS_GREEN)
-        ws3.cell(row=row, column=3).fill = cls.PASS_FILL
+        # Final calculation section
+        final_row = 9 + n_periods + 2
+        ws3.cell(row=final_row, column=2, value="FINAL CALCULATION:").font = Font(bold=True)
+        ws3.cell(row=final_row, column=2).fill = cls.GOLD_FILL
+        ws3.merge_cells(start_row=final_row, start_column=2, end_row=final_row, end_column=5)
 
-        ws3.column_dimensions['B'].width = 25
-        ws3.column_dimensions['C'].width = 25
-        ws3.column_dimensions['D'].width = 25
+        ws3.cell(row=final_row+1, column=2, value=f"Product of all {n_periods} (1+R) values: {product_all:.8f}").font = Font(bold=True, size=12)
+        ws3.cell(row=final_row+2, column=2, value=f"Subtract 1: {product_all:.8f} - 1 = {cumulative:.8f}").font = Font(bold=True, size=12)
+        ws3.cell(row=final_row+3, column=2, value=f"Convert to %: {cumulative:.8f} × 100 = {cumulative*100:.2f}%").font = Font(bold=True, size=12)
+
+        ws3.cell(row=final_row+5, column=2, value=f"CUMULATIVE RETURN:").font = Font(bold=True, size=14)
+        ws3.cell(row=final_row+5, column=3, value=f"{cumulative*100:.2f}%").font = Font(bold=True, size=16, color=cls.GS_GREEN)
+        ws3.cell(row=final_row+5, column=3).fill = cls.PASS_FILL
+
+        ws3.column_dimensions['B'].width = 10
+        ws3.column_dimensions['C'].width = 15
+        ws3.column_dimensions['D'].width = 15
+        ws3.column_dimensions['E'].width = 18
+        ws3.column_dimensions['F'].width = 15
 
         # ═══════════════════════════════════════════════════════════════════
-        # SHEET 4: VOLATILITY CALCULATION
+        # SHEET 4: VOLATILITY - FULL TRANSPARENCY (ALL PERIODS)
         # ═══════════════════════════════════════════════════════════════════
         ws4 = wb.create_sheet("4_Volatility")
         ws4.sheet_view.showGridLines = False
@@ -9791,7 +9799,7 @@ class VerificationPackageGenerator:
         ws4['B10'] = f"Mean Monthly Return: {mean_return*100:.4f}%"
         ws4['B10'].font = Font(bold=True)
 
-        ws4['B12'] = "STEP 2: Calculate Deviations (Ri - μ) [First 10 shown]"
+        ws4['B12'] = f"STEP 2: Calculate ALL {n_periods} Deviations (Ri - μ)"
         ws4['B12'].font = cls.HEADER_FONT
         ws4['B12'].fill = cls.HEADER_FILL
 
@@ -9800,49 +9808,61 @@ class VerificationPackageGenerator:
             ws4.cell(row=13, column=col, value=header).font = cls.HEADER_FONT
             ws4.cell(row=13, column=col).fill = cls.HEADER_FILL
 
-        for i in range(min(10, n_periods)):
+        # Show ALL periods for full transparency
+        for i in range(n_periods):
             row = 14 + i
-            ws4.cell(row=row, column=2, value=i+1)
-            ws4.cell(row=row, column=3, value=f"{returns[i]:.6f}").font = cls.CODE_FONT
+            ws4.cell(row=row, column=2, value=i+1).border = cls.BORDER
+            ret_cell = ws4.cell(row=row, column=3, value=f"{returns[i]:.6f}")
+            ret_cell.font = cls.CODE_FONT
+            ret_cell.border = cls.BORDER
             ws4.cell(row=row, column=4, value=f"{mean_return:.6f}").font = cls.CODE_FONT
+            ws4.cell(row=row, column=4).border = cls.BORDER
             ws4.cell(row=row, column=5, value=f"{deviations[i]:.6f}").font = cls.CODE_FONT
+            ws4.cell(row=row, column=5).border = cls.BORDER
             ws4.cell(row=row, column=6, value=f"{squared_devs[i]:.10f}").font = cls.CODE_FONT
+            ws4.cell(row=row, column=6).border = cls.BORDER
 
-        ws4['B25'] = "STEP 3: Sum of Squared Deviations"
-        ws4['B25'].font = cls.HEADER_FONT
-        ws4['B25'].fill = cls.HEADER_FILL
-        ws4['B26'] = f"Σ(Ri - μ)² = {sum_squared:.10f}"
-        ws4['B26'].font = Font(bold=True)
+            # Alternating row colors
+            if i % 2 == 0:
+                for col in range(2, 7):
+                    ws4.cell(row=row, column=col).fill = cls.LIGHT_FILL
 
-        ws4['B28'] = "STEP 4: Variance"
-        ws4['B28'].font = cls.HEADER_FONT
-        ws4['B28'].fill = cls.HEADER_FILL
-        ws4['B29'] = f"Variance = {sum_squared:.10f} / {n_periods-1} = {variance:.10f}"
-        ws4['B29'].font = cls.CODE_FONT
+        # Summary row
+        sum_row = 14 + n_periods
+        ws4.cell(row=sum_row, column=2, value="TOTAL").font = Font(bold=True)
+        ws4.cell(row=sum_row, column=6, value=f"{sum_squared:.10f}").font = Font(bold=True)
+        for col in range(2, 7):
+            ws4.cell(row=sum_row, column=col).fill = cls.GOLD_FILL
 
-        ws4['B31'] = "STEP 5: Monthly Standard Deviation"
-        ws4['B31'].font = cls.HEADER_FONT
-        ws4['B31'].fill = cls.HEADER_FILL
-        ws4['B32'] = f"σ_monthly = √{variance:.10f} = {monthly_std:.8f}"
-        ws4['B32'].font = cls.CODE_FONT
+        # Step 3 onwards
+        step3_row = sum_row + 2
+        ws4.cell(row=step3_row, column=2, value="STEP 3: Sum of Squared Deviations").font = cls.HEADER_FONT
+        ws4.cell(row=step3_row, column=2).fill = cls.HEADER_FILL
+        ws4.cell(row=step3_row+1, column=2, value=f"Σ(Ri - μ)² = {sum_squared:.10f}").font = Font(bold=True)
 
-        ws4['B34'] = "STEP 6: Annualize (× √12)"
-        ws4['B34'].font = cls.HEADER_FONT
-        ws4['B34'].fill = cls.GOLD_FILL
-        ws4['B35'] = f"σ_annual = {monthly_std:.8f} × 3.4641 = {volatility:.8f}"
-        ws4['B35'].font = cls.CODE_FONT
+        ws4.cell(row=step3_row+3, column=2, value="STEP 4: Variance (with Bessel's correction)").font = cls.HEADER_FONT
+        ws4.cell(row=step3_row+3, column=2).fill = cls.HEADER_FILL
+        ws4.cell(row=step3_row+4, column=2, value=f"Variance = {sum_squared:.10f} / ({n_periods} - 1)").font = cls.CODE_FONT
+        ws4.cell(row=step3_row+5, column=2, value=f"Variance = {sum_squared:.10f} / {n_periods-1} = {variance:.10f}").font = cls.CODE_FONT
 
-        ws4['B37'] = "ANNUALIZED VOLATILITY:"
-        ws4['B37'].font = Font(bold=True, size=14)
-        ws4['C37'] = f"{volatility*100:.2f}%"
-        ws4['C37'].font = Font(bold=True, size=16, color=cls.GS_NAVY)
-        ws4['C37'].fill = cls.PASS_FILL
+        ws4.cell(row=step3_row+7, column=2, value="STEP 5: Monthly Standard Deviation").font = cls.HEADER_FONT
+        ws4.cell(row=step3_row+7, column=2).fill = cls.HEADER_FILL
+        ws4.cell(row=step3_row+8, column=2, value=f"σ_monthly = √({variance:.10f}) = {monthly_std:.8f}").font = cls.CODE_FONT
 
-        ws4.column_dimensions['B'].width = 20
+        ws4.cell(row=step3_row+10, column=2, value="STEP 6: Annualize (× √12)").font = cls.HEADER_FONT
+        ws4.cell(row=step3_row+10, column=2).fill = cls.GOLD_FILL
+        ws4.cell(row=step3_row+11, column=2, value=f"σ_annual = {monthly_std:.8f} × √12").font = cls.CODE_FONT
+        ws4.cell(row=step3_row+12, column=2, value=f"σ_annual = {monthly_std:.8f} × 3.4641 = {volatility:.8f}").font = cls.CODE_FONT
+
+        ws4.cell(row=step3_row+14, column=2, value="ANNUALIZED VOLATILITY:").font = Font(bold=True, size=14)
+        ws4.cell(row=step3_row+14, column=3, value=f"{volatility*100:.2f}%").font = Font(bold=True, size=16, color=cls.GS_NAVY)
+        ws4.cell(row=step3_row+14, column=3).fill = cls.PASS_FILL
+
+        ws4.column_dimensions['B'].width = 12
         ws4.column_dimensions['C'].width = 18
         ws4.column_dimensions['D'].width = 18
         ws4.column_dimensions['E'].width = 18
-        ws4.column_dimensions['F'].width = 20
+        ws4.column_dimensions['F'].width = 22
 
         # ═══════════════════════════════════════════════════════════════════
         # SHEET 5: SHARPE RATIO
@@ -9894,7 +9914,7 @@ class VerificationPackageGenerator:
         ws5.column_dimensions['C'].width = 25
 
         # ═══════════════════════════════════════════════════════════════════
-        # SHEET 6: SORTINO RATIO
+        # SHEET 6: SORTINO RATIO - FULL TRANSPARENCY
         # ═══════════════════════════════════════════════════════════════════
         ws6 = wb.create_sheet("6_Sortino_Ratio")
         ws6.sheet_view.showGridLines = False
@@ -9906,39 +9926,96 @@ class VerificationPackageGenerator:
         ws6['B5'] = "Sortino = (Rp - MAR) / Downside Deviation"
         ws6['B5'].font = cls.FORMULA_FONT
         ws6['B5'].fill = cls.LIGHT_FILL
+        ws6['B6'] = "Downside Deviation = √(Σ(min(Ri-MAR,0))² / n) × √12"
+        ws6['B6'].font = cls.FORMULA_FONT
+        ws6['B6'].fill = cls.LIGHT_FILL
 
-        ws6['B8'] = "STEP 1: Identify Downside Returns"
+        ws6['B8'] = f"STEP 1: Identify ALL Downside Returns (Return < MAR)"
         ws6['B8'].font = cls.HEADER_FONT
         ws6['B8'].fill = cls.HEADER_FILL
-        ws6['B9'] = f"MAR (Monthly Rf) = {rf_monthly:.6f} ({rf_monthly*100:.4f}%)"
-        ws6['B10'] = f"Returns below MAR: {len(downside_returns)} out of {n_periods}"
 
-        ws6['B12'] = "STEP 2: Downside Deviation"
-        ws6['B12'].font = cls.HEADER_FONT
-        ws6['B12'].fill = cls.HEADER_FILL
-        ws6['B13'] = f"DD = √(Σ(min(Ri-MAR,0))²/n) × √12"
-        ws6['B13'].font = cls.CODE_FONT
-        ws6['B14'] = f"Annualized DD = {downside_dev:.8f} ({downside_dev*100:.4f}%)"
+        ws6['B9'] = f"MAR (Minimum Acceptable Return) = Monthly Rf = {rf_monthly:.6f} ({rf_monthly*100:.4f}%)"
 
-        ws6['B16'] = "STEP 3: Calculate Sortino"
-        ws6['B16'].font = cls.HEADER_FONT
-        ws6['B16'].fill = cls.GOLD_FILL
-        ws6['B17'] = f"= ({annualized:.8f} - {rf_annual:.8f}) / {downside_dev:.8f}"
-        ws6['B17'].font = cls.CODE_FONT
-        ws6['B18'] = f"= {excess_return:.8f} / {downside_dev:.8f}"
-        ws6['B18'].font = cls.CODE_FONT
+        # Headers for downside returns table
+        headers6 = ["Period", "Monthly Return", "Below MAR?", "Downside (Ri-MAR)", "(Downside)²"]
+        for col, header in enumerate(headers6, start=2):
+            ws6.cell(row=11, column=col, value=header).font = cls.HEADER_FONT
+            ws6.cell(row=11, column=col).fill = cls.HEADER_FILL
 
-        ws6['B20'] = "SORTINO RATIO:"
-        ws6['B20'].font = Font(bold=True, size=14)
-        ws6['C20'] = f"{sortino:.4f}"
-        ws6['C20'].font = Font(bold=True, size=18, color=cls.GS_NAVY)
-        ws6['C20'].fill = cls.PASS_FILL
+        # Show ALL returns and identify downside ones
+        downside_count = 0
+        sum_downside_sq = 0
+        for i in range(n_periods):
+            row = 12 + i
+            is_downside = returns[i] < rf_monthly
+            downside_val = returns[i] - rf_monthly if is_downside else 0
+            downside_sq = downside_val ** 2 if is_downside else 0
 
-        ws6.column_dimensions['B'].width = 45
-        ws6.column_dimensions['C'].width = 25
+            if is_downside:
+                downside_count += 1
+                sum_downside_sq += downside_sq
+
+            ws6.cell(row=row, column=2, value=i+1).border = cls.BORDER
+            ret_cell = ws6.cell(row=row, column=3, value=f"{returns[i]*100:.2f}%")
+            ret_cell.font = cls.RED_FONT if is_downside else cls.GREEN_FONT
+            ret_cell.border = cls.BORDER
+            ws6.cell(row=row, column=4, value="YES" if is_downside else "").border = cls.BORDER
+            ws6.cell(row=row, column=5, value=f"{downside_val:.6f}" if is_downside else "").font = cls.CODE_FONT
+            ws6.cell(row=row, column=5).border = cls.BORDER
+            ws6.cell(row=row, column=6, value=f"{downside_sq:.10f}" if is_downside else "").font = cls.CODE_FONT
+            ws6.cell(row=row, column=6).border = cls.BORDER
+
+            # Highlight downside returns
+            if is_downside:
+                for col in range(2, 7):
+                    ws6.cell(row=row, column=col).fill = PatternFill(start_color="FFEEEE", end_color="FFEEEE", fill_type="solid")
+            elif i % 2 == 0:
+                for col in range(2, 7):
+                    ws6.cell(row=row, column=col).fill = cls.LIGHT_FILL
+
+        # Summary row
+        sum_row = 12 + n_periods
+        ws6.cell(row=sum_row, column=2, value="TOTALS").font = Font(bold=True)
+        ws6.cell(row=sum_row, column=4, value=f"{downside_count}").font = Font(bold=True)
+        ws6.cell(row=sum_row, column=6, value=f"{sum_downside_sq:.10f}").font = Font(bold=True)
+        for col in range(2, 7):
+            ws6.cell(row=sum_row, column=col).fill = cls.GOLD_FILL
+
+        # Step 2: Calculate Downside Deviation
+        step2_row = sum_row + 2
+        ws6.cell(row=step2_row, column=2, value="STEP 2: Downside Deviation Calculation").font = cls.HEADER_FONT
+        ws6.cell(row=step2_row, column=2).fill = cls.HEADER_FILL
+
+        monthly_dd = np.sqrt(sum_downside_sq / n_periods) if sum_downside_sq > 0 else 0
+        ws6.cell(row=step2_row+1, column=2, value=f"Sum of squared downside returns: {sum_downside_sq:.10f}").font = cls.CODE_FONT
+        ws6.cell(row=step2_row+2, column=2, value=f"Divide by n: {sum_downside_sq:.10f} / {n_periods} = {sum_downside_sq/n_periods:.10f}").font = cls.CODE_FONT
+        ws6.cell(row=step2_row+3, column=2, value=f"Monthly DD = √({sum_downside_sq/n_periods:.10f}) = {monthly_dd:.8f}").font = cls.CODE_FONT
+        ws6.cell(row=step2_row+4, column=2, value=f"Annualized DD = {monthly_dd:.8f} × √12 = {downside_dev:.8f} ({downside_dev*100:.4f}%)").font = Font(bold=True)
+
+        # Step 3: Calculate Sortino
+        step3_row = step2_row + 6
+        ws6.cell(row=step3_row, column=2, value="STEP 3: Calculate Sortino Ratio").font = cls.HEADER_FONT
+        ws6.cell(row=step3_row, column=2).fill = cls.GOLD_FILL
+
+        ws6.cell(row=step3_row+1, column=2, value=f"Numerator: Rp - MAR = {annualized:.8f} - {rf_annual:.8f} = {excess_return:.8f}").font = cls.CODE_FONT
+        ws6.cell(row=step3_row+2, column=2, value=f"Denominator: Downside Deviation = {downside_dev:.8f}").font = cls.CODE_FONT
+        ws6.cell(row=step3_row+3, column=2, value=f"Sortino = {excess_return:.8f} / {downside_dev:.8f} = {sortino:.6f}").font = Font(bold=True, size=12)
+
+        ws6.cell(row=step3_row+5, column=2, value="SORTINO RATIO:").font = Font(bold=True, size=14)
+        ws6.cell(row=step3_row+5, column=3, value=f"{sortino:.4f}").font = Font(bold=True, size=18, color=cls.GS_NAVY)
+        ws6.cell(row=step3_row+5, column=3).fill = cls.PASS_FILL
+
+        interp6 = "Excellent (>2)" if sortino > 2 else "Good (1-2)" if sortino > 1 else "Acceptable (0.5-1)" if sortino > 0.5 else "Poor (<0.5)"
+        ws6.cell(row=step3_row+6, column=2, value=f"INTERPRETATION: {interp6}").font = cls.GREEN_FONT if sortino > 1 else cls.RED_FONT
+
+        ws6.column_dimensions['B'].width = 12
+        ws6.column_dimensions['C'].width = 18
+        ws6.column_dimensions['D'].width = 12
+        ws6.column_dimensions['E'].width = 20
+        ws6.column_dimensions['F'].width = 22
 
         # ═══════════════════════════════════════════════════════════════════
-        # SHEET 7: MAX DRAWDOWN
+        # SHEET 7: MAX DRAWDOWN - FULL TRANSPARENCY (ALL PERIODS)
         # ═══════════════════════════════════════════════════════════════════
         ws7 = wb.create_sheet("7_Max_Drawdown")
         ws7.sheet_view.showGridLines = False
@@ -9951,50 +10028,78 @@ class VerificationPackageGenerator:
         ws7['B5'].font = cls.FORMULA_FONT
         ws7['B5'].fill = cls.LIGHT_FILL
 
-        ws7['B7'] = "WEALTH SERIES (First 20 periods):"
+        ws7['B7'] = f"WEALTH SERIES (ALL {n_periods} periods):"
         ws7['B7'].font = cls.HEADER_FONT
         ws7['B7'].fill = cls.HEADER_FILL
 
-        headers7 = ["Period", "Wealth", "Peak", "Drawdown"]
+        headers7 = ["Period", "Wealth", "Peak", "Drawdown", "Is Max?"]
         for col, header in enumerate(headers7, start=2):
             ws7.cell(row=8, column=col, value=header).font = cls.HEADER_FONT
             ws7.cell(row=8, column=col).fill = cls.HEADER_FILL
 
+        # Build full wealth/drawdown series to find max drawdown period
         peak_track = wealth[0]
-        max_dd_idx = 0
-        for i in range(min(20, n_periods)):
-            row = 9 + i
+        drawdowns = []
+        max_dd_period = 0
+        for i in range(n_periods):
             if wealth[i+1] > peak_track:
                 peak_track = wealth[i+1]
             dd = (peak_track - wealth[i+1]) / peak_track
+            drawdowns.append((i+1, wealth[i+1], peak_track, dd))
+            if dd >= max_dd - 0.0001:  # Allow small tolerance for float comparison
+                max_dd_period = i+1
 
-            ws7.cell(row=row, column=2, value=i+1)
-            ws7.cell(row=row, column=3, value=f"${wealth[i+1]*100:.2f}")
-            ws7.cell(row=row, column=4, value=f"${peak_track*100:.2f}")
+        # Write ALL periods to the sheet
+        for i, (period, w, pk, dd) in enumerate(drawdowns):
+            row = 9 + i
+            ws7.cell(row=row, column=2, value=period).border = cls.BORDER
+            ws7.cell(row=row, column=3, value=f"${w*100:.2f}").border = cls.BORDER
+            ws7.cell(row=row, column=4, value=f"${pk*100:.2f}").border = cls.BORDER
             dd_cell = ws7.cell(row=row, column=5, value=f"{dd*100:.2f}%")
-            dd_cell.font = cls.RED_FONT if dd > 0.10 else Font()
+            dd_cell.border = cls.BORDER
 
-        ws7['B30'] = "MAXIMUM DRAWDOWN:"
-        ws7['B30'].font = cls.HEADER_FONT
-        ws7['B30'].fill = cls.GOLD_FILL
-        ws7['B31'] = f"Peak: ${max_dd_peak*100:.2f}"
-        ws7['B32'] = f"Trough: ${max_dd_trough*100:.2f}"
-        ws7['B33'] = f"MDD = ({max_dd_peak:.6f} - {max_dd_trough:.6f}) / {max_dd_peak:.6f}"
-        ws7['B33'].font = cls.CODE_FONT
+            # Highlight max drawdown row
+            is_max = period == max_dd_period
+            max_cell = ws7.cell(row=row, column=6, value="← MAX" if is_max else "")
 
-        ws7['B35'] = "MAXIMUM DRAWDOWN:"
-        ws7['B35'].font = Font(bold=True, size=14)
-        ws7['C35'] = f"{max_dd*100:.2f}%"
-        ws7['C35'].font = Font(bold=True, size=18, color=cls.GS_RED)
-        ws7['C35'].fill = cls.PASS_FILL
+            if is_max:
+                # Highlight entire row for max drawdown
+                for col in range(2, 7):
+                    ws7.cell(row=row, column=col).fill = PatternFill(start_color="FFCCCC", end_color="FFCCCC", fill_type="solid")
+                    ws7.cell(row=row, column=col).font = Font(bold=True, color=cls.GS_RED)
+                max_cell.font = Font(bold=True, color=cls.GS_RED)
+            elif dd > 0.10:
+                dd_cell.font = cls.RED_FONT
+
+            # Alternating row colors (except max row)
+            if not is_max and i % 2 == 0:
+                for col in range(2, 7):
+                    ws7.cell(row=row, column=col).fill = cls.LIGHT_FILL
+
+        # Final calculation section
+        final_row = 9 + n_periods + 2
+        ws7.cell(row=final_row, column=2, value="MAXIMUM DRAWDOWN FOUND:").font = cls.HEADER_FONT
+        ws7.cell(row=final_row, column=2).fill = cls.GOLD_FILL
+        ws7.merge_cells(start_row=final_row, start_column=2, end_row=final_row, end_column=5)
+
+        ws7.cell(row=final_row+1, column=2, value=f"Period: {max_dd_period}")
+        ws7.cell(row=final_row+2, column=2, value=f"Peak: ${max_dd_peak*100:.2f}")
+        ws7.cell(row=final_row+3, column=2, value=f"Trough: ${max_dd_trough*100:.2f}")
+        ws7.cell(row=final_row+4, column=2, value=f"MDD = ({max_dd_peak:.6f} - {max_dd_trough:.6f}) / {max_dd_peak:.6f}")
+        ws7.cell(row=final_row+4, column=2).font = cls.CODE_FONT
+
+        ws7.cell(row=final_row+6, column=2, value="MAXIMUM DRAWDOWN:").font = Font(bold=True, size=14)
+        ws7.cell(row=final_row+6, column=3, value=f"{max_dd*100:.2f}%").font = Font(bold=True, size=18, color=cls.GS_RED)
+        ws7.cell(row=final_row+6, column=3).fill = cls.PASS_FILL
 
         ws7.column_dimensions['B'].width = 15
         ws7.column_dimensions['C'].width = 15
         ws7.column_dimensions['D'].width = 15
         ws7.column_dimensions['E'].width = 15
+        ws7.column_dimensions['F'].width = 10
 
         # ═══════════════════════════════════════════════════════════════════
-        # SHEET 8: VaR & CVaR
+        # SHEET 8: VaR & CVaR - FULL TRANSPARENCY
         # ═══════════════════════════════════════════════════════════════════
         ws8 = wb.create_sheet("8_VaR_CVaR")
         ws8.sheet_view.showGridLines = False
@@ -10006,35 +10111,83 @@ class VerificationPackageGenerator:
         ws8['B5'] = "VaR (95%) = Percentile(Returns, 5%)"
         ws8['B5'].font = cls.FORMULA_FONT
         ws8['B5'].fill = cls.LIGHT_FILL
-        ws8['B6'] = "CVaR (95%) = E[R | R < VaR]"
+        ws8['B6'] = "CVaR (95%) = E[R | R < VaR] = Average of returns worse than VaR"
         ws8['B6'].font = cls.FORMULA_FONT
         ws8['B6'].fill = cls.LIGHT_FILL
 
-        ws8['B8'] = "SORTED RETURNS (Worst 15):"
+        # Show ALL sorted returns for full transparency
+        num_tail = var_index + 1  # Number of returns in the tail
+        ws8['B8'] = f"SORTED RETURNS (ALL {n_periods} returns, worst first):"
         ws8['B8'].font = cls.HEADER_FONT
         ws8['B8'].fill = cls.HEADER_FILL
 
-        for i in range(min(15, len(sorted_returns))):
-            row = 9 + i
-            ws8.cell(row=row, column=2, value=i+1)
-            ws8.cell(row=row, column=3, value=f"{sorted_returns[i]*100:.2f}%").font = cls.RED_FONT
+        headers8 = ["Rank", "Return", "In Tail?", "Used in CVaR"]
+        for col, header in enumerate(headers8, start=2):
+            ws8.cell(row=9, column=col, value=header).font = cls.HEADER_FONT
+            ws8.cell(row=9, column=col).fill = cls.HEADER_FILL
+
+        # Show all sorted returns
+        for i in range(len(sorted_returns)):
+            row = 10 + i
+            ws8.cell(row=row, column=2, value=i+1).border = cls.BORDER
+            ret_cell = ws8.cell(row=row, column=3, value=f"{sorted_returns[i]*100:.2f}%")
+            ret_cell.font = cls.RED_FONT if sorted_returns[i] < 0 else cls.GREEN_FONT
+            ret_cell.border = cls.BORDER
+
+            in_tail = i <= var_index
+            ws8.cell(row=row, column=4, value="YES" if in_tail else "").border = cls.BORDER
+            ws8.cell(row=row, column=5, value=f"{sorted_returns[i]*100:.2f}%" if in_tail else "").border = cls.BORDER
+
+            # Highlight the VaR cutoff point
             if i == var_index:
-                ws8.cell(row=row, column=4, value="← VaR (95%)").font = Font(bold=True, color=cls.GS_RED)
+                for col in range(2, 6):
+                    ws8.cell(row=row, column=col).fill = PatternFill(start_color="FFCCCC", end_color="FFCCCC", fill_type="solid")
+                ws8.cell(row=row, column=6, value="← VaR (95%)").font = Font(bold=True, color=cls.GS_RED)
 
-        ws8['B25'] = "VaR CALCULATION:"
-        ws8['B25'].font = cls.HEADER_FONT
-        ws8['B25'].fill = cls.GOLD_FILL
-        ws8['B26'] = f"5% of {n_periods} = {0.05*n_periods:.1f} → index {var_index}"
-        ws8['B27'] = f"VaR (95%) = {var_95*100:.2f}%"
-        ws8['B27'].font = Font(bold=True, size=14, color=cls.GS_RED)
+            # Alternating colors for non-tail rows
+            if not in_tail and i % 2 == 0:
+                for col in range(2, 6):
+                    ws8.cell(row=row, column=col).fill = cls.LIGHT_FILL
 
-        ws8['B29'] = "CVaR (Expected Shortfall):"
-        ws8['B30'] = f"CVaR = mean(worst {var_index+1} returns) = {cvar_95*100:.2f}%"
-        ws8['B30'].font = Font(bold=True, size=14, color=cls.GS_RED)
+        # VaR Calculation
+        calc_row = 10 + n_periods + 2
+        ws8.cell(row=calc_row, column=2, value="VaR CALCULATION:").font = cls.HEADER_FONT
+        ws8.cell(row=calc_row, column=2).fill = cls.GOLD_FILL
+        ws8.merge_cells(start_row=calc_row, start_column=2, end_row=calc_row, end_column=5)
 
-        ws8.column_dimensions['B'].width = 10
+        ws8.cell(row=calc_row+1, column=2, value=f"Total periods: {n_periods}")
+        ws8.cell(row=calc_row+2, column=2, value=f"5% of {n_periods} = {0.05*n_periods:.2f}")
+        ws8.cell(row=calc_row+3, column=2, value=f"Round to index: {var_index} (0-based)")
+        ws8.cell(row=calc_row+4, column=2, value=f"VaR value: sorted_returns[{var_index}] = {sorted_returns[var_index]*100:.2f}%")
+        ws8.cell(row=calc_row+5, column=2, value=f"VaR (95%) = {var_95*100:.2f}%").font = Font(bold=True, size=14, color=cls.GS_RED)
+
+        # CVaR Calculation with EXPLICIT formula
+        cvar_row = calc_row + 7
+        ws8.cell(row=cvar_row, column=2, value="CVaR (Expected Shortfall) CALCULATION:").font = cls.HEADER_FONT
+        ws8.cell(row=cvar_row, column=2).fill = cls.GOLD_FILL
+        ws8.merge_cells(start_row=cvar_row, start_column=2, end_row=cvar_row, end_column=5)
+
+        ws8.cell(row=cvar_row+1, column=2, value=f"CVaR = Average of returns worse than or equal to VaR")
+        ws8.cell(row=cvar_row+2, column=2, value=f"Tail returns (worst {num_tail}):")
+
+        # Build explicit CVaR formula
+        tail_values = [f"{sorted_returns[i]*100:.2f}%" for i in range(num_tail)]
+        tail_sum = sum(sorted_returns[:num_tail])
+        tail_formula = " + ".join([f"({sorted_returns[i]*100:.2f}%)" for i in range(num_tail)])
+
+        ws8.cell(row=cvar_row+3, column=2, value=f"Values: {', '.join(tail_values)}").font = cls.CODE_FONT
+        ws8.cell(row=cvar_row+4, column=2, value=f"Sum: {tail_formula} = {tail_sum*100:.2f}%").font = cls.CODE_FONT
+        ws8.cell(row=cvar_row+5, column=2, value=f"CVaR = {tail_sum*100:.2f}% / {num_tail} = {cvar_95*100:.2f}%").font = cls.CODE_FONT
+
+        ws8.cell(row=cvar_row+7, column=2, value="RESULTS:").font = Font(bold=True, size=14)
+        ws8.cell(row=cvar_row+8, column=2, value=f"VaR (95%) = {var_95*100:.2f}%").font = Font(bold=True, size=14, color=cls.GS_RED)
+        ws8.cell(row=cvar_row+9, column=2, value=f"CVaR (95%) = {cvar_95*100:.2f}%").font = Font(bold=True, size=14, color=cls.GS_RED)
+
+        ws8.column_dimensions['B'].width = 12
         ws8.column_dimensions['C'].width = 15
-        ws8.column_dimensions['D'].width = 15
+        ws8.column_dimensions['D'].width = 12
+        ws8.column_dimensions['E'].width = 15
+        ws8.column_dimensions['F'].width = 15
 
         # ═══════════════════════════════════════════════════════════════════
         # SHEET 9: BETA & ALPHA
