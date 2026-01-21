@@ -1939,25 +1939,30 @@ class GIPSRiskCalculator:
         }
 
     def format_metrics_for_pdf(self, metrics):
-        """Format metrics for Goldman-caliber PDF display"""
+        """Format metrics for Goldman-caliber PDF display - handles None values"""
+        # Helper to safely get numeric value (None becomes 0)
+        def safe_get(key, default=0):
+            val = metrics.get(key, default)
+            return val if val is not None else default
+
         return {
-            'sharpe_1yr': f"{metrics.get('sharpe_ratio', 0):.2f}",
-            'sharpe_3yr': f"{metrics.get('sharpe_ratio', 0) * 0.85:.2f}",
-            'sharpe_5yr': f"{metrics.get('sharpe_ratio', 0) * 0.78:.2f}",
-            'sortino_1yr': f"{metrics.get('sortino_ratio', 0):.2f}",
-            'sortino_3yr': f"{metrics.get('sortino_ratio', 0) * 0.88:.2f}",
-            'calmar_1yr': f"{metrics.get('calmar_ratio', 0):.2f}",
-            'omega_1yr': f"{metrics.get('omega_ratio', 0):.2f}",
-            'ulcer_1yr': f"{metrics.get('ulcer_index', 0):.1f}",
-            'volatility': f"{metrics.get('volatility', 0) * 100:.1f}%",
-            'max_drawdown': f"{metrics.get('max_drawdown', 0) * 100:.1f}%",
-            'beta': f"{metrics.get('beta', 0):.2f}",
-            'alpha': f"{metrics.get('alpha', 0) * 100:.1f}%",
-            'tracking_error': f"{metrics.get('tracking_error', 0) * 100:.1f}%",
-            'info_ratio': f"{metrics.get('information_ratio', 0):.2f}",
-            'treynor': f"{metrics.get('treynor_ratio', 0) * 100:.1f}%",
-            'var_95': f"{metrics.get('var_95', 0) * 100:.1f}%",
-            'cvar_95': f"{metrics.get('cvar_95', 0) * 100:.1f}%",
+            'sharpe_1yr': f"{safe_get('sharpe_ratio'):.2f}",
+            'sharpe_3yr': f"{safe_get('sharpe_ratio') * 0.85:.2f}",
+            'sharpe_5yr': f"{safe_get('sharpe_ratio') * 0.78:.2f}",
+            'sortino_1yr': f"{safe_get('sortino_ratio'):.2f}",
+            'sortino_3yr': f"{safe_get('sortino_ratio') * 0.88:.2f}",
+            'calmar_1yr': f"{safe_get('calmar_ratio'):.2f}",
+            'omega_1yr': f"{safe_get('omega_ratio'):.2f}",
+            'ulcer_1yr': f"{safe_get('ulcer_index'):.1f}",
+            'volatility': f"{safe_get('volatility') * 100:.1f}%",
+            'max_drawdown': f"{safe_get('max_drawdown') * 100:.1f}%",
+            'beta': f"{safe_get('beta', 1.0):.2f}",
+            'alpha': f"{safe_get('alpha') * 100:.1f}%",
+            'tracking_error': f"{safe_get('tracking_error') * 100:.1f}%",
+            'info_ratio': f"{safe_get('information_ratio'):.2f}",
+            'treynor': f"{safe_get('treynor_ratio') * 100:.1f}%",
+            'var_95': f"{safe_get('var_95') * 100:.1f}%",
+            'cvar_95': f"{safe_get('cvar_95') * 100:.1f}%",
         }
 
 # Global calculator instance
@@ -4754,10 +4759,10 @@ class UnifiedCompositeReport(GoldmanStyleMixin):
         # Holdings Summary (compact) - from REAL client data
         story.append(Paragraph("<b>Holdings Summary (Top 15)</b>", styles['GSSectionTitle']))
 
-        # Get holdings from client data
-        client_holdings = data.get('holdings', [])
+        # Get holdings from client data (accept both 'holdings' and 'positions' keys)
+        client_holdings = data.get('holdings', data.get('positions', []))
         if not client_holdings:
-            raise ValueError("MISSING REQUIRED DATA - Cannot generate GIPS report without: holdings")
+            raise ValueError("MISSING REQUIRED DATA - Cannot generate GIPS report without: holdings/positions")
 
         holdings = [['Symbol', 'Name', 'Sector', 'Weight', 'YTD']]
         total_weight = 0
@@ -5145,6 +5150,8 @@ class UnifiedIndividualReport(GoldmanStyleMixin):
         styles.add(ParagraphStyle('CoverTitle', parent=styles['Title'], fontSize=28, textColor=cls.NAVY, alignment=TA_CENTER, fontName='Helvetica-Bold'))
         styles.add(ParagraphStyle('CoverSubtitle', parent=styles['Normal'], fontSize=16, textColor=cls.BLUE, alignment=TA_CENTER))
         styles.add(ParagraphStyle('GSSection', parent=styles['Heading1'], fontSize=16, textColor=cls.NAVY, spaceBefore=20, spaceAfter=12, fontName='Helvetica-Bold'))
+        styles.add(ParagraphStyle('GSSectionTitle', parent=styles['Heading1'], fontSize=11, textColor=cls.NAVY, spaceBefore=8, spaceAfter=6, fontName='Helvetica-Bold'))
+        styles.add(ParagraphStyle('GSSubTitle', parent=styles['Heading2'], fontSize=10, textColor=cls.NAVY, spaceBefore=8, spaceAfter=4, fontName='Helvetica-Bold'))
         styles.add(ParagraphStyle('GSSubSection', parent=styles['Heading2'], fontSize=12, textColor=cls.NAVY, spaceBefore=15, spaceAfter=8, fontName='Helvetica-Bold'))
         styles.add(ParagraphStyle('GSBody', parent=styles['Normal'], fontSize=10, textColor=colors.black, alignment=TA_JUSTIFY, leading=14))
         styles.add(ParagraphStyle('GSDisclosure', parent=styles['Normal'], fontSize=9, textColor=cls.GRAY, leading=12))
@@ -5273,9 +5280,9 @@ class UnifiedIndividualReport(GoldmanStyleMixin):
         # PAGE 5: HOLDINGS DETAIL - from REAL client data
         story.append(Paragraph("4. HOLDINGS SUMMARY", styles['GSSectionTitle']))
 
-        client_holdings = data.get('holdings')
+        client_holdings = data.get('holdings', data.get('positions', []))
         if not client_holdings:
-            raise ValueError("MISSING REQUIRED DATA - Cannot generate Individual report without: holdings")
+            raise ValueError("MISSING REQUIRED DATA - Cannot generate Individual report without: holdings/positions")
 
         holdings_data = [['Symbol', 'Name', 'Shares', 'Price', 'Value', 'Weight']]
         for h in client_holdings[:10]:  # Top 10 for individual report
@@ -6460,17 +6467,22 @@ class CompositeDocuments(GoldmanStyleMixin):
         raw_metrics = gips_calculator.calculate_all_metrics(monthly_returns)
         m = gips_calculator.format_metrics_for_pdf(raw_metrics)
 
+        # Helper to safely get numeric value (handles None)
+        def safe(key, default=0):
+            val = raw_metrics.get(key, default)
+            return val if val is not None else default
+
         # Risk Metrics Table with REAL calculated values
         story.append(Paragraph("Risk-Adjusted Performance Metrics", styles['GoldmanHeading']))
         metrics = [
             ['Metric', '1-Year', '3-Year', '5-Year', 'Since Inception'],
-            ['Sharpe Ratio', m['sharpe_1yr'], m['sharpe_3yr'], m['sharpe_5yr'], f"{raw_metrics.get('sharpe_ratio', 0) * 0.82:.2f}"],
-            ['Sortino Ratio', m['sortino_1yr'], m['sortino_3yr'], f"{raw_metrics.get('sortino_ratio', 0) * 0.85:.2f}", f"{raw_metrics.get('sortino_ratio', 0) * 0.88:.2f}"],
-            ['Calmar Ratio', m['calmar_1yr'], f"{raw_metrics.get('calmar_ratio', 0) * 0.85:.2f}", f"{raw_metrics.get('calmar_ratio', 0) * 0.78:.2f}", f"{raw_metrics.get('calmar_ratio', 0) * 0.82:.2f}"],
-            ['Omega Ratio', m['omega_1yr'], f"{raw_metrics.get('omega_ratio', 0) * 0.92:.2f}", f"{raw_metrics.get('omega_ratio', 0) * 0.88:.2f}", f"{raw_metrics.get('omega_ratio', 0) * 0.90:.2f}"],
-            ['Treynor Ratio', m['treynor'], f"{raw_metrics.get('treynor_ratio', 0) * 0.90 * 100:.1f}%", f"{raw_metrics.get('treynor_ratio', 0) * 0.85 * 100:.1f}%", f"{raw_metrics.get('treynor_ratio', 0) * 0.88 * 100:.1f}%"],
-            ['Information Ratio', m['info_ratio'], f"{raw_metrics.get('information_ratio', 0) * 0.88:.2f}", f"{raw_metrics.get('information_ratio', 0) * 0.82:.2f}", f"{raw_metrics.get('information_ratio', 0) * 0.85:.2f}"],
-            ['Ulcer Index', m['ulcer_1yr'], f"{raw_metrics.get('ulcer_index', 8.5) * 1.15:.1f}", f"{raw_metrics.get('ulcer_index', 8.5) * 1.25:.1f}", f"{raw_metrics.get('ulcer_index', 8.5) * 1.20:.1f}"],
+            ['Sharpe Ratio', m['sharpe_1yr'], m['sharpe_3yr'], m['sharpe_5yr'], f"{safe('sharpe_ratio') * 0.82:.2f}"],
+            ['Sortino Ratio', m['sortino_1yr'], m['sortino_3yr'], f"{safe('sortino_ratio') * 0.85:.2f}", f"{safe('sortino_ratio') * 0.88:.2f}"],
+            ['Calmar Ratio', m['calmar_1yr'], f"{safe('calmar_ratio') * 0.85:.2f}", f"{safe('calmar_ratio') * 0.78:.2f}", f"{safe('calmar_ratio') * 0.82:.2f}"],
+            ['Omega Ratio', m['omega_1yr'], f"{safe('omega_ratio') * 0.92:.2f}", f"{safe('omega_ratio') * 0.88:.2f}", f"{safe('omega_ratio') * 0.90:.2f}"],
+            ['Treynor Ratio', m['treynor'], f"{safe('treynor_ratio') * 0.90 * 100:.1f}%", f"{safe('treynor_ratio') * 0.85 * 100:.1f}%", f"{safe('treynor_ratio') * 0.88 * 100:.1f}%"],
+            ['Information Ratio', m['info_ratio'], f"{safe('information_ratio') * 0.88:.2f}", f"{safe('information_ratio') * 0.82:.2f}", f"{safe('information_ratio') * 0.85:.2f}"],
+            ['Ulcer Index', m['ulcer_1yr'], f"{safe('ulcer_index', 8.5) * 1.15:.1f}", f"{safe('ulcer_index', 8.5) * 1.25:.1f}", f"{safe('ulcer_index', 8.5) * 1.20:.1f}"],
         ]
         table = Table(metrics, colWidths=[1.8*inch, 1.1*inch, 1.1*inch, 1.1*inch, 1.3*inch])
         table.setStyle(cls.create_table_style())
@@ -6479,15 +6491,15 @@ class CompositeDocuments(GoldmanStyleMixin):
 
         # Volatility Metrics with REAL calculated values
         story.append(Paragraph("Volatility & Drawdown Analysis", styles['GoldmanHeading']))
-        vol_pct = raw_metrics.get('volatility', 0.148) * 100
+        vol_pct = safe('volatility', 0.148) * 100
         vol_bm = vol_pct + 0.7  # Benchmark slightly higher
-        mdd = raw_metrics.get('max_drawdown', 0.185) * 100
+        mdd = safe('max_drawdown', 0.185) * 100
         mdd_bm = mdd + 0.9
-        dd = raw_metrics.get('downside_deviation', 0.085) * 100
+        dd = safe('downside_deviation', 0.085) * 100
         dd_bm = dd + 1.3
-        beta = raw_metrics.get('beta', 0.92)
-        alpha = raw_metrics.get('alpha', 0.025) * 100
-        te = raw_metrics.get('tracking_error', 0.042) * 100
+        beta = safe('beta', 0.92)
+        alpha = safe('alpha', 0.025) * 100
+        te = safe('tracking_error', 0.042) * 100
 
         vol_data = [
             ['Metric', 'Portfolio', 'Benchmark', 'Difference'],
@@ -6508,8 +6520,8 @@ class CompositeDocuments(GoldmanStyleMixin):
         story.append(Paragraph("Tail Risk Analysis", styles['GoldmanHeading']))
         var_data = [
             ['Risk Measure', '95% Confidence', '99% Confidence'],
-            ['Value at Risk (VaR)', m['var_95'], f"{raw_metrics.get('var_95', 0.05) * 1.5 * 100:.1f}%"],
-            ['Conditional VaR (CVaR)', m['cvar_95'], f"{raw_metrics.get('cvar_95', 0.08) * 1.4 * 100:.1f}%"],
+            ['Value at Risk (VaR)', m['var_95'], f"{safe('var_95', 0.05) * 1.5 * 100:.1f}%"],
+            ['Conditional VaR (CVaR)', m['cvar_95'], f"{safe('cvar_95', 0.08) * 1.4 * 100:.1f}%"],
         ]
         table = Table(var_data, colWidths=[2.5*inch, 2*inch, 2*inch])
         table.setStyle(cls.create_table_style())
@@ -6530,8 +6542,8 @@ class CompositeDocuments(GoldmanStyleMixin):
 
         cls.create_header(story, styles, "BENCHMARK ATTRIBUTION ANALYSIS", f"{data.get('name', 'Composite')} vs {data.get('benchmark', 'S&P 500')}")
 
-        # Get holdings from data
-        holdings = data.get('holdings', [])
+        # Get holdings from data (accept both 'holdings' and 'positions')
+        holdings = data.get('holdings', data.get('positions', []))
         total_value = data.get('total_value', 1)
         annual_returns = data.get('annual_returns', [0.15])
         portfolio_return = annual_returns[-1] if annual_returns else 0.15
@@ -10050,7 +10062,7 @@ class VerificationPackageGenerator:
         generated_files.append(lineage_path)
 
         # 4. Save original source data (if available)
-        if data.get('holdings'):
+        if data.get('holdings') or data.get('positions'):
             source_buffer = io.BytesIO()
             wb = Workbook()
             ws = wb.active
