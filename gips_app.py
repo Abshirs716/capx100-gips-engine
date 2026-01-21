@@ -10902,17 +10902,21 @@ def api_hybrid_check():
         benchmark_returns = data.get('benchmark_returns', [])
         if not benchmark_returns:
             import numpy as np
+            np.random.seed(42)
             benchmark_returns = [r * 0.85 + np.random.normal(0, 0.005) for r in monthly_returns]
 
-        # Initialize calculator
-        calc = GIPSRiskCalculator(monthly_returns, benchmark_returns)
+        # Initialize calculator with just risk-free rate
+        calc = GIPSRiskCalculator(risk_free_rate=0.04)
+        returns = calc.normalize_returns(monthly_returns)
+        bench_returns = calc.normalize_returns(benchmark_returns)
 
-        # Calculate all metrics
+        # Calculate all metrics using the calculator's methods
         metrics_results = []
         calculated_values = {}
 
-        # 1. Cumulative Return
-        cum_return = calc.cumulative_return()
+        # 1. Cumulative Return - direct calculation
+        n_periods = len(returns)
+        cum_return = np.prod(1 + np.array(returns)) - 1
         calculated_values['cumulative_return'] = cum_return
         metrics_results.append({
             'metric': 'Cumulative Return',
@@ -10922,7 +10926,7 @@ def api_hybrid_check():
         })
 
         # 2. Annualized Return
-        ann_return = calc.annualized_return()
+        ann_return = (1 + cum_return) ** (12 / n_periods) - 1
         calculated_values['annualized_return'] = ann_return
         metrics_results.append({
             'metric': 'Annualized Return',
@@ -10932,7 +10936,7 @@ def api_hybrid_check():
         })
 
         # 3. Volatility
-        vol = calc.volatility()
+        vol = calc.calculate_volatility(returns)
         calculated_values['volatility'] = vol
         metrics_results.append({
             'metric': 'Volatility',
@@ -10942,7 +10946,7 @@ def api_hybrid_check():
         })
 
         # 4. Sharpe Ratio
-        sharpe = calc.sharpe_ratio()
+        sharpe = calc.calculate_sharpe_ratio(returns)
         calculated_values['sharpe_ratio'] = sharpe
         metrics_results.append({
             'metric': 'Sharpe Ratio',
@@ -10952,7 +10956,7 @@ def api_hybrid_check():
         })
 
         # 5. Sortino Ratio
-        sortino = calc.sortino_ratio()
+        sortino = calc.calculate_sortino_ratio(returns)
         calculated_values['sortino_ratio'] = sortino
         metrics_results.append({
             'metric': 'Sortino Ratio',
@@ -10962,7 +10966,7 @@ def api_hybrid_check():
         })
 
         # 6. Max Drawdown
-        max_dd = calc.max_drawdown()
+        max_dd = calc.calculate_max_drawdown(returns)
         calculated_values['max_drawdown'] = max_dd
         metrics_results.append({
             'metric': 'Max Drawdown',
@@ -10972,7 +10976,7 @@ def api_hybrid_check():
         })
 
         # 7. Calmar Ratio
-        calmar = calc.calmar_ratio()
+        calmar = calc.calculate_calmar_ratio(returns)
         calculated_values['calmar_ratio'] = calmar
         metrics_results.append({
             'metric': 'Calmar Ratio',
@@ -10982,7 +10986,7 @@ def api_hybrid_check():
         })
 
         # 8. VaR (95%)
-        var_95 = calc.var_95()
+        var_95 = calc.calculate_var_historical(returns, confidence=0.95)
         calculated_values['var_95'] = var_95
         metrics_results.append({
             'metric': 'VaR (95%)',
@@ -10992,7 +10996,7 @@ def api_hybrid_check():
         })
 
         # 9. CVaR (95%)
-        cvar_95 = calc.cvar_95()
+        cvar_95 = calc.calculate_cvar(returns, confidence=0.95)
         calculated_values['cvar_95'] = cvar_95
         metrics_results.append({
             'metric': 'CVaR (95%)',
@@ -11002,7 +11006,7 @@ def api_hybrid_check():
         })
 
         # 10. Beta
-        beta = calc.beta()
+        beta = calc.calculate_beta(returns, bench_returns)
         calculated_values['beta'] = beta
         metrics_results.append({
             'metric': 'Beta',
@@ -11012,7 +11016,7 @@ def api_hybrid_check():
         })
 
         # 11. Alpha
-        alpha = calc.alpha()
+        alpha = calc.calculate_alpha(returns, bench_returns)
         calculated_values['alpha'] = alpha
         metrics_results.append({
             'metric': 'Alpha',
@@ -11022,7 +11026,7 @@ def api_hybrid_check():
         })
 
         # 12. Downside Deviation
-        downside_dev = calc.downside_deviation()
+        downside_dev = calc.calculate_downside_deviation(returns)
         calculated_values['downside_deviation'] = downside_dev
         metrics_results.append({
             'metric': 'Downside Deviation',
@@ -11032,7 +11036,7 @@ def api_hybrid_check():
         })
 
         # 13. Information Ratio
-        info_ratio = calc.information_ratio()
+        info_ratio = calc.calculate_information_ratio(returns, bench_returns)
         calculated_values['information_ratio'] = info_ratio
         metrics_results.append({
             'metric': 'Information Ratio',
@@ -11042,7 +11046,7 @@ def api_hybrid_check():
         })
 
         # 14. Treynor Ratio
-        treynor = calc.treynor_ratio()
+        treynor = calc.calculate_treynor_ratio(returns, bench_returns)
         calculated_values['treynor_ratio'] = treynor
         metrics_results.append({
             'metric': 'Treynor Ratio',
@@ -11052,7 +11056,7 @@ def api_hybrid_check():
         })
 
         # 15. Omega Ratio
-        omega = calc.omega_ratio()
+        omega = calc.calculate_omega_ratio(returns)
         calculated_values['omega_ratio'] = omega
         metrics_results.append({
             'metric': 'Omega Ratio',
