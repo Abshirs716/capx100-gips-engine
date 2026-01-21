@@ -1,0 +1,45 @@
+{
+  "firms": [
+    {
+      "name": "Test Firm",
+      "type": "RIA"
+    },
+    {
+      "name": "Test RIA Firm",
+      "type": "RIA",
+      "gips_date": "2024-01-01",
+      "verification": "Yes",
+      "definition": "Test definition"
+    },
+    {
+      "name": "Test RIA Firm",
+      "type": "RIA",
+      "gips_date": "2024-01-01",
+      "verification": "Yes",
+      "definition": "Test definition"
+    }
+  ],
+  "composites": [
+    {
+      "name": "Test Composite",
+      "firm": "Test Firm"
+    },
+    {
+      "firm": "Test RIA Firm",
+      "name": "Large Cap Growth",
+      "strategy": "Growth",
+      "benchmark": "S&P 500",
+      "fee": "1.00",
+      "definition": "Test composite"
+    },
+    {
+      "firm": "Test RIA Firm",
+      "name": "Large Cap Growth",
+      "strategy": "Growth",
+      "benchmark": "S&P 500",
+      "fee": "1.00",
+      "definition": "Test composite"
+    }
+  ],
+  "accounts": []
+}
