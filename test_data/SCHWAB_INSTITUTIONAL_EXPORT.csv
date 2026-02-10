@@ -87,10 +87,10 @@ SWVXX,SCHWAB VALUE ADV MONEY FD,622829703,"2,992,593.8613",$1.00,"$2,992,593.86"
 
 POSITION SUMMARY:
   Total Positions: 73
-  Total Market Value: $208,168,686.59
+  Total Market Value: $212,157,007.05
   Total Cost Basis: $180,727,013.10
-  Total Unrealized G/L: $27,441,673.49
-  Total Unrealized G/L %: 15.18%
+  Total Unrealized G/L: $31,429,993.95
+  Total Unrealized G/L %: 17.39%
 
 === MONTHLY VALUATIONS ===
 Date,Portfolio Value,Net Contributions,Monthly Return %
@@ -154,7 +154,6 @@ Date,Portfolio Value,Net Contributions,Monthly Return %
 2024-10,$201,926,202.27,$0.00,2.05%
 2024-11,$200,507,988.78,$0.00,-0.70%
 2024-12,$212,157,007.05,$0.00,5.81%
-2024-12,$208,168,686.62,$0.00,-1.88%
 
 === TRANSACTION HISTORY ===
 Trade Date,Settlement Date,Action,Symbol,Description,CUSIP,Quantity,Price,Gross Amount,Commission,Fees,Net Amount,Transaction ID,Account
