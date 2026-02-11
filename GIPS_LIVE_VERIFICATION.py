@@ -35,7 +35,7 @@ from datetime import datetime
 from scipy import stats
 
 # Add the GIPS engine path to import from gips_app.py
-GIPS_ENGINE_PATH = "/Users/abshirsharif/Desktop/Desktop - Abshir's MacBook Air/Desktop=Stuff/CapX100/capx100-gips-engine"
+GIPS_ENGINE_PATH = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, GIPS_ENGINE_PATH)
 
 TEST_CSV_PATH = f"{GIPS_ENGINE_PATH}/test_data/SCHWAB_INSTITUTIONAL_EXPORT.csv"

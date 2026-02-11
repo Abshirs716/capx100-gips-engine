@@ -13,7 +13,7 @@ import io
 import numpy as np
 from datetime import datetime
 
-GIPS_PATH = "/Users/abshirsharif/Desktop/Desktop - Abshir's MacBook Air/Desktop=Stuff/CapX100/capx100-gips-engine"
+GIPS_PATH = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, GIPS_PATH)
 
 TEST_CSV = f"{GIPS_PATH}/test_data/SCHWAB_INSTITUTIONAL_EXPORT.csv"
